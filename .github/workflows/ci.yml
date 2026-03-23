@@ -35,7 +35,7 @@ jobs:
   # Só roda após o Job 1 passar.
   # ---------------------------------------------------------------------------
   gabaritos:
-    name: "Gabaritos (23 exercícios)"
+    name: "Gabaritos (24 exercícios)"
     runs-on: ubuntu-latest
     needs: simulator
 
