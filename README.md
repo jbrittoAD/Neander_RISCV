@@ -1,6 +1,6 @@
 # Processador RISC-V RV32I — Harvard e Von Neumann
 
-![CI](https://github.com/YOUR_REPO/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/jbrittoAD/Neander_RISCV/actions/workflows/ci.yml/badge.svg)
 
 Implementação educacional completa do conjunto de instruções RISC-V base de 32 bits
 (RV32I) em **SystemVerilog**, simulada e validada com **Verilator**.
