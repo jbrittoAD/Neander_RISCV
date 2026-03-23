@@ -1,0 +1,95 @@
+name: CI — RISC-V RV32I
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # Job 1: Testes do Simulador Python
+  # Roda 89 testes unitários em Python puro — sem toolchain externo.
+  # Deve sempre passar em 2-3 segundos.
+  # ---------------------------------------------------------------------------
+  simulator:
+    name: "Simulador Python (89 testes)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Executar testes do simulador
+        run: python3 simulator/tests/test_core.py
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Verificação dos Gabaritos
+  # Requer toolchain RISC-V para montar os arquivos .s de cada exercício.
+  # Só roda após o Job 1 passar.
+  # ---------------------------------------------------------------------------
+  gabaritos:
+    name: "Gabaritos (23 exercícios)"
+    runs-on: ubuntu-latest
+    needs: simulator
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Instalar toolchain RISC-V
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
+
+      - name: Verificar toolchain
+        run: riscv64-unknown-elf-as --version
+
+      - name: Verificar gabaritos dos exercícios
+        run: python3 exercicios/verifica_gabaritos.py
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Testes de Hardware com Verilator
+  # Compila e simula os dois designs (Harvard e Von Neumann) com Verilator.
+  # Só roda após o Job 2 passar.
+  #
+  # ATENÇÃO: O Verilator disponível via apt no Ubuntu pode ser a versão 4.x,
+  # enquanto este projeto foi desenvolvido e testado com Verilator 5.x.
+  # Se este job falhar com erros de sintaxe SystemVerilog, a causa provável é
+  # incompatibilidade de versão do Verilator (apt vs. 5.x). Nesse caso,
+  # considere instalar o Verilator 5.x a partir do código-fonte ou use
+  # uma action customizada com a versão correta.
+  # ---------------------------------------------------------------------------
+  hardware:
+    name: "Hardware Verilator (Harvard + Von Neumann)"
+    runs-on: ubuntu-latest
+    needs: gabaritos
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Instalar Verilator e toolchain RISC-V
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
+
+      - name: Verificar versão do Verilator
+        run: verilator --version
+
+      - name: Testes Harvard — compilar e simular
+        run: cd riscv_harvard && make all
+
+      - name: Testes Von Neumann — compilar e simular
+        run: cd riscv_von_neumann && make all

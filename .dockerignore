@@ -1,0 +1,13 @@
+# Verilator build output — recompiled inside the container
+**/obj_dir/
+
+# Compiled object and binary files — recompiled inside the container
+**/*.o
+**/*.bin
+**/*.hex
+
+# Python bytecode cache
+**/__pycache__/
+
+# Git history — not needed in the image
+.git/
