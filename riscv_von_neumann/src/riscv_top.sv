@@ -1,15 +1,24 @@
 // =============================================================================
+// RISC-V RV32I Processor — Von Neumann Architecture (Single-Cycle)
 // Processador RISC-V RV32I — Arquitetura Von Neumann (Single-Cycle)
+// Top-level module: connects all components
 // Módulo top-level: interliga todos os componentes
 //
+// Von Neumann Architecture:
 // Arquitetura Von Neumann:
+//   - ONE unified memory for instructions and data
 //   - UMA memória unificada para instruções e dados
+//   - Instructions and data share the same address space
 //   - Instruções e dados compartilham o mesmo espaço de endereçamento
+//   - In single-cycle, both are accessed in the same cycle via different memory ports
 //   - Em single-cycle, ambos são acessados no mesmo ciclo via portas diferentes
+//     (simplified implementation for educational purposes)
 //     da memória (implementação simplificada para fins educacionais)
 //
+// Difference from the Harvard version:
 // Diferença em relação à versão Harvard:
 //   instr_mem.sv + data_mem.sv → unified_mem.sv
+// The rest of the datapath is identical.
 // O restante do datapath é idêntico.
 // =============================================================================
 `include "alu.sv"
@@ -27,7 +36,7 @@ module riscv_top #(
     input  logic        rst_n,
 
     // ------------------------------------------------------------------
-    // Portas de debug
+    // Debug ports / Portas de debug
     // ------------------------------------------------------------------
     output logic [31:0] dbg_pc,
     output logic [31:0] dbg_instr,
@@ -40,7 +49,7 @@ module riscv_top #(
 );
 
     // =========================================================================
-    // Sinais internos
+    // Internal signals / Sinais internos
     // =========================================================================
     logic [31:0] pc, pc_next, pc_plus4;
 
@@ -86,7 +95,7 @@ module riscv_top #(
     assign pc_plus4 = pc + 32'd4;
 
     // =========================================================================
-    // Próximo PC
+    // Next PC / Próximo PC
     // =========================================================================
     assign branch_target = pc + imm_b;
     assign jalr_sum      = rs1_data + imm_i;
@@ -114,7 +123,7 @@ module riscv_top #(
     end
 
     // =========================================================================
-    // Decodificação
+    // Decode / Decodificação
     // =========================================================================
     assign opcode   = instr[6:0];
     assign funct3   = instr[14:12];
@@ -124,7 +133,7 @@ module riscv_top #(
     assign rs2_addr = instr[24:20];
 
     // =========================================================================
-    // Memória Unificada — Von Neumann
+    // Unified Memory — Von Neumann / Memória Unificada — Von Neumann
     // =========================================================================
     unified_mem #(
         .DEPTH(MEM_DEPTH),
@@ -142,7 +151,7 @@ module riscv_top #(
     );
 
     // =========================================================================
-    // Gerador de Imediatos
+    // Immediate Generator / Gerador de Imediatos
     // =========================================================================
     imm_gen u_immgen (
         .instr (instr),
@@ -154,7 +163,7 @@ module riscv_top #(
     );
 
     // =========================================================================
-    // Unidade de Controle
+    // Control Unit / Unidade de Controle
     // =========================================================================
     control_unit u_ctrl (
         .opcode    (opcode),
@@ -184,7 +193,7 @@ module riscv_top #(
     end
 
     // =========================================================================
-    // Banco de Registradores
+    // Register File / Banco de Registradores
     // =========================================================================
     register_file u_regfile (
         .clk        (clk),
@@ -200,7 +209,7 @@ module riscv_top #(
     );
 
     // =========================================================================
-    // Unidade de Controle da ALU
+    // ALU Control Unit / Unidade de Controle da ALU
     // =========================================================================
     alu_control u_alu_ctrl (
         .alu_op    (alu_op),
@@ -211,7 +220,7 @@ module riscv_top #(
     );
 
     // =========================================================================
-    // Seletor de imediato
+    // Immediate selector / Seletor de imediato
     // =========================================================================
     always_comb begin
         case (opcode)
@@ -225,7 +234,7 @@ module riscv_top #(
     end
 
     // =========================================================================
-    // Entradas da ALU
+    // ALU inputs / Entradas da ALU
     // =========================================================================
     assign alu_a = alu_src_a ? pc      : rs1_data;
     assign alu_b = alu_src_b ? imm_sel : rs2_data;

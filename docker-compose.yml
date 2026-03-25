@@ -1,9 +1,11 @@
+# Docker Compose configuration for the RISC-V RV32I project
+# Configuração Docker Compose para o projeto RISC-V RV32I
 services:
   riscv:
     build: .
     volumes:
-      - .:/project
+      - .:/project   # Mount source code into the container / Monta o código-fonte no container
     working_dir: /project
-    stdin_open: true
-    tty: true
+    stdin_open: true  # Keep stdin open for interactive use / Mantém stdin aberto para uso interativo
+    tty: true         # Allocate a pseudo-TTY / Aloca um pseudo-TTY
     command: bash

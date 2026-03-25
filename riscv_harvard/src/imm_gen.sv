@@ -1,21 +1,29 @@
 // =============================================================================
+// Immediate Generator — RISC-V RV32I
 // Gerador de Imediatos — RISC-V RV32I
+// Extracts and sign-extends the immediate according to the instruction type
 // Extrai e estende com sinal o imediato de acordo com o tipo de instrução
 //
+// Supported formats:
 // Formatos suportados:
+//   I-type: loads, immediate arithmetic operations, JALR
 //   I-type: loads, operações aritméticas imediatas, JALR
 //   S-type: stores
+//   S-type: stores
+//   B-type: branches
 //   B-type: branches
 //   U-type: LUI, AUIPC
+//   U-type: LUI, AUIPC
+//   J-type: JAL
 //   J-type: JAL
 // =============================================================================
 module imm_gen (
-    input  logic [31:0] instr,    // Instrução completa
-    output logic [31:0] imm_i,    // Imediato I-type
-    output logic [31:0] imm_s,    // Imediato S-type
-    output logic [31:0] imm_b,    // Imediato B-type (offset de branch)
-    output logic [31:0] imm_u,    // Imediato U-type
-    output logic [31:0] imm_j     // Imediato J-type (offset de JAL)
+    input  logic [31:0] instr,    // Full instruction / Instrução completa
+    output logic [31:0] imm_i,    // I-type immediate / Imediato I-type
+    output logic [31:0] imm_s,    // S-type immediate / Imediato S-type
+    output logic [31:0] imm_b,    // B-type immediate (branch offset) / Imediato B-type (offset de branch)
+    output logic [31:0] imm_u,    // U-type immediate / Imediato U-type
+    output logic [31:0] imm_j     // J-type immediate (JAL offset) / Imediato J-type (offset de JAL)
 );
 
     // I-type: sign_extend(inst[31:20])

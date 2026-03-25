@@ -54,6 +54,7 @@ int main(int argc, char** argv) {
 
     reset(dut, ctx);
 
+    // Run enough cycles for all instructions (15 instructions + loop)
     // Executa instruções suficientes (15 instruções + loop)
     for (int i = 0; i < 20; i++)
         tick(dut, ctx);

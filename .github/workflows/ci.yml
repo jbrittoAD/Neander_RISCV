@@ -9,6 +9,9 @@ on:
 jobs:
 
   # ---------------------------------------------------------------------------
+  # Job 1: Python Simulator Tests
+  # Runs 89 unit tests in pure Python — no external toolchain required.
+  # Should always pass in 2-3 seconds.
   # Job 1: Testes do Simulador Python
   # Roda 89 testes unitários em Python puro — sem toolchain externo.
   # Deve sempre passar em 2-3 segundos.
@@ -30,6 +33,9 @@ jobs:
         run: python3 simulator/tests/test_core.py
 
   # ---------------------------------------------------------------------------
+  # Job 2: Answer Key Verification
+  # Requires the RISC-V toolchain to assemble the .s files for each exercise.
+  # Only runs after Job 1 passes.
   # Job 2: Verificação dos Gabaritos
   # Requer toolchain RISC-V para montar os arquivos .s de cada exercício.
   # Só roda após o Job 1 passar.
@@ -60,6 +66,16 @@ jobs:
         run: python3 exercicios/verifica_gabaritos.py
 
   # ---------------------------------------------------------------------------
+  # Job 3: Hardware Tests with Verilator
+  # Compiles and simulates both designs (Harvard and Von Neumann) with Verilator.
+  # Only runs after Job 2 passes.
+  #
+  # WARNING: The Verilator version available via apt on Ubuntu may be 4.x,
+  # while this project was developed and tested with Verilator 5.x.
+  # If this job fails with SystemVerilog syntax errors, the likely cause is
+  # a Verilator version mismatch (apt vs. 5.x). In that case,
+  # consider installing Verilator 5.x from source or using a
+  # custom action with the correct version.
   # Job 3: Testes de Hardware com Verilator
   # Compila e simula os dois designs (Harvard e Von Neumann) com Verilator.
   # Só roda após o Job 2 passar.

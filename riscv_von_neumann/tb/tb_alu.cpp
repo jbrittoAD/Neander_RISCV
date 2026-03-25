@@ -8,7 +8,8 @@
 #include <cstdio>
 #include <cstdint>
 
-// Codificação das operações (deve casar com alu.sv)
+// Operation encoding — must match alu.sv
+// Codificação das operações — deve casar com alu.sv
 enum AluOp {
     ALU_ADD  = 0,
     ALU_SUB  = 1,
@@ -25,7 +26,8 @@ enum AluOp {
 static int passed = 0;
 static int failed = 0;
 
-// Avalia um caso de teste e reporta resultado
+// Evaluates one test case and reports the result
+// Avalia um caso de teste e reporta o resultado
 void check(Valu* dut, uint32_t a, uint32_t b, AluOp op,
            uint32_t expected_result, bool expected_zero,
            const char* test_name)
@@ -98,29 +100,35 @@ int main(int argc, char** argv) {
     check(dut, 0xA5A5A5A5, 0x5A5A5A5A, ALU_XOR, 0xFFFFFFFF,  false, "XOR padrao xadrez");
 
     // ------------------------------------------------------------------
-    // SLL (shift left logical)
+    // SLL (shift left logical) / deslocamento lógico à esquerda
     // ------------------------------------------------------------------
     printf("[ SLL ]\n");
     check(dut, 1,          4,          ALU_SLL, 16,          false, "1 << 4 = 16");
     check(dut, 1,          31,         ALU_SLL, 0x80000000,  false, "1 << 31");
+    // Only lower 5 bits of shamt are used: 32 & 31 = 0
+    // Apenas os 5 bits inferiores do shamt são usados: 32 & 31 = 0
     check(dut, 1,          32,         ALU_SLL, 1,           false, "shamt 5 bits: 32 & 31 = 0");
 
     // ------------------------------------------------------------------
-    // SRL (shift right logical)
+    // SRL (shift right logical) / deslocamento lógico à direita
     // ------------------------------------------------------------------
     printf("[ SRL ]\n");
+    // SRL fills upper bits with 0 (no sign extension)
+    // SRL preenche bits superiores com 0 (sem extensão de sinal)
     check(dut, 0x80000000, 1,          ALU_SRL, 0x40000000,  false, "SRL sem extensao de sinal");
     check(dut, 16,         4,          ALU_SRL, 1,           false, "16 >> 4 = 1");
 
     // ------------------------------------------------------------------
-    // SRA (shift right arithmetic)
+    // SRA (shift right arithmetic) / deslocamento aritmético à direita
     // ------------------------------------------------------------------
     printf("[ SRA ]\n");
+    // SRA replicates the sign bit into upper positions
+    // SRA replica o bit de sinal nas posições superiores
     check(dut, 0x80000000, 1,          ALU_SRA, 0xC0000000,  false, "SRA com extensao de sinal");
     check(dut, (uint32_t)(-8), 2,      ALU_SRA, (uint32_t)(-2), false, "-8 >> 2 = -2");
 
     // ------------------------------------------------------------------
-    // SLT (set less than, com sinal)
+    // SLT (set less than, signed) / menor que, com sinal
     // ------------------------------------------------------------------
     printf("[ SLT ]\n");
     check(dut, (uint32_t)(-1), 0,      ALU_SLT, 1,           false, "-1 < 0 (com sinal) = 1");
@@ -128,7 +136,7 @@ int main(int argc, char** argv) {
     check(dut, 5,          5,          ALU_SLT, 0,           true,  "5 < 5 = 0");
 
     // ------------------------------------------------------------------
-    // SLTU (set less than, sem sinal)
+    // SLTU (set less than unsigned) / menor que, sem sinal
     // ------------------------------------------------------------------
     printf("[ SLTU ]\n");
     check(dut, 0,          0xFFFFFFFF, ALU_SLTU, 1,          false, "0 < 0xFFFFFFFF (sem sinal) = 1");
@@ -136,7 +144,7 @@ int main(int argc, char** argv) {
     check(dut, 3,          3,          ALU_SLTU, 0,          true,  "3 < 3 = 0");
 
     // ------------------------------------------------------------------
-    // Resultado final
+    // Final results / Resultado final
     // ------------------------------------------------------------------
     printf("\n===================================\n");
     printf("Resultados: %d aprovados, %d reprovados\n", passed, failed);

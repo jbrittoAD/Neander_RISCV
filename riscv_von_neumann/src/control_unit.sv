@@ -1,19 +1,22 @@
 // =============================================================================
+// Main Control Unit — RISC-V RV32I (Single-Cycle)
 // Unidade de Controle Principal — RISC-V RV32I (Single-Cycle)
+// Decodes the opcode and generates all control signals
 // Decodifica o opcode e gera todos os sinais de controle
 //
-// Sinais de controle:
-//   reg_write  : habilita escrita no banco de registradores
-//   alu_src_a  : seleciona operando A da ALU (0=rs1, 1=PC)
-//   alu_src_b  : seleciona operando B da ALU (0=rs2, 1=imediato)
-//   mem_read   : habilita leitura da memória de dados
-//   mem_write  : habilita escrita na memória de dados
-//   branch     : instrução de branch
-//   jump       : instrução JAL
-//   jump_r     : instrução JALR
-//   mem_to_reg : seleciona dado a escrever no registrador
+// Control signals / Sinais de controle:
+//   reg_write  : enables write to the register file / habilita escrita no banco de registradores
+//   alu_src_a  : selects ALU operand A (0=rs1, 1=PC) / seleciona operando A da ALU (0=rs1, 1=PC)
+//   alu_src_b  : selects ALU operand B (0=rs2, 1=immediate) / seleciona operando B da ALU (0=rs2, 1=imediato)
+//   mem_read   : enables data memory read / habilita leitura da memória de dados
+//   mem_write  : enables data memory write / habilita escrita na memória de dados
+//   branch     : branch instruction / instrução de branch
+//   jump       : JAL instruction / instrução JAL
+//   jump_r     : JALR instruction / instrução JALR
+//   mem_to_reg : selects data to write to register / seleciona dado a escrever no registrador
+//                  00=ALU result, 01=memory data, 10=PC+4, 11=immediate (LUI)
 //                  00=resultado ALU, 01=dado memória, 10=PC+4, 11=imediato (LUI)
-//   alu_op     : código para a unidade de controle da ALU
+//   alu_op     : code for the ALU control unit / código para a unidade de controle da ALU
 //                  00=ADD, 01=branch, 10=R-type, 11=I-arith
 // =============================================================================
 module control_unit (
@@ -31,9 +34,9 @@ module control_unit (
     output logic [1:0] alu_op
 );
 
-    // Opcodes RV32I
+    // RV32I opcodes / Opcodes RV32I
     localparam OP_R      = 7'b0110011; // R-type
-    localparam OP_I_ARITH= 7'b0010011; // I-type aritmético
+    localparam OP_I_ARITH= 7'b0010011; // Arithmetic I-type / I-type aritmético
     localparam OP_LOAD   = 7'b0000011; // Load
     localparam OP_STORE  = 7'b0100011; // Store
     localparam OP_BRANCH = 7'b1100011; // Branch
@@ -43,7 +46,7 @@ module control_unit (
     localparam OP_AUIPC  = 7'b0010111; // AUIPC
 
     always_comb begin
-        // Valores padrão (seguro: nenhuma ação)
+        // Default values (safe: no action) / Valores padrão (seguro: nenhuma ação)
         reg_write  = 1'b0;
         alu_src_a  = 1'b0;
         alu_src_b  = 1'b0;
@@ -63,27 +66,27 @@ module control_unit (
 
             OP_I_ARITH: begin
                 reg_write  = 1'b1;
-                alu_src_b  = 1'b1;   // usa imediato
+                alu_src_b  = 1'b1;   // use immediate / usa imediato
                 alu_op     = 2'b11;  // I-arith
             end
 
             OP_LOAD: begin
                 reg_write  = 1'b1;
-                alu_src_b  = 1'b1;   // endereço = rs1 + imm
+                alu_src_b  = 1'b1;   // address = rs1 + imm / endereço = rs1 + imm
                 mem_read   = 1'b1;
-                mem_to_reg = 2'b01;  // dado da memória
+                mem_to_reg = 2'b01;  // data from memory / dado da memória
                 alu_op     = 2'b00;  // ADD
             end
 
             OP_STORE: begin
-                alu_src_b  = 1'b1;   // endereço = rs1 + imm
+                alu_src_b  = 1'b1;   // address = rs1 + imm / endereço = rs1 + imm
                 mem_write  = 1'b1;
                 alu_op     = 2'b00;  // ADD
             end
 
             OP_BRANCH: begin
                 branch     = 1'b1;
-                alu_op     = 2'b01;  // branch comparison
+                alu_op     = 2'b01;  // branch comparison / comparação de branch
             end
 
             OP_JAL: begin
@@ -103,18 +106,18 @@ module control_unit (
             OP_LUI: begin
                 reg_write  = 1'b1;
                 alu_src_b  = 1'b1;
-                mem_to_reg = 2'b11;  // imediato direto → rd
+                mem_to_reg = 2'b11;  // immediate directly → rd / imediato direto → rd
             end
 
             OP_AUIPC: begin
                 reg_write  = 1'b1;
-                alu_src_a  = 1'b1;   // PC como operando A
-                alu_src_b  = 1'b1;   // imediato U como operando B
+                alu_src_a  = 1'b1;   // PC as operand A / PC como operando A
+                alu_src_b  = 1'b1;   // U-immediate as operand B / imediato U como operando B
                 alu_op     = 2'b00;  // ADD → PC + upper_imm
             end
 
             default: begin
-                // NOP / instrução desconhecida
+                // NOP / unknown instruction / NOP / instrução desconhecida
             end
         endcase
     end

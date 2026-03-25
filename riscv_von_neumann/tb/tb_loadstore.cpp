@@ -55,26 +55,27 @@ int main(int argc, char** argv) {
 
     reset(dut, ctx);
 
+    // 14 instructions + loop — 20 cycles is enough
     // 14 instruções + loop = 20 ciclos é suficiente
     for (int i = 0; i < 25; i++)
         tick(dut, ctx);
 
     printf("[ Verificando registradores após execução ]\n");
-    // x1 = 100 (valor original)
+    // x1 = 100 (original value / valor original)
     check(dut, 1, 100,        "addi x0,100");
-    // x2 = 100 (lido via LW)
+    // x2 = 100 (read back via LW / lido via LW)
     check(dut, 2, 100,        "lw mem[0]");
-    // x3 = 0x55 (byte sem sinal armazenado)
+    // x3 = 0x55 (unsigned byte stored / byte sem sinal armazenado)
     check(dut, 3, 0x55,       "addi x0,0x55");
-    // x4 = 0x55 (lido via LBU)
+    // x4 = 0x55 (read via LBU / lido via LBU)
     check(dut, 4, 0x55,       "lbu mem[4]");
     // x5 = -85 (0xFFFFFFAB)
     check(dut, 5, (uint32_t)(-85), "addi x0,-85");
-    // x6 = -85 (lido via LB com extensão de sinal)
+    // x6 = -85 (read via LB with sign extension / lido via LB com extensão de sinal)
     check(dut, 6, (uint32_t)(-85), "lb mem[8] sext");
     // x7 = 0x1234 (half-word)
     check(dut, 7, 0x1234,     "half-word 0x1234");
-    // x8 = 0x1234 (lido via LHU)
+    // x8 = 0x1234 (read via LHU / lido via LHU)
     check(dut, 8, 0x1234,     "lhu mem[12]");
 
     printf("\n===================================\n");

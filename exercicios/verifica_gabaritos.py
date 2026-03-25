@@ -25,10 +25,11 @@ import subprocess
 import tempfile
 import unittest
 
+# Project root path (one level above this script)
 # Caminho raiz do projeto (um nível acima deste script)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Adiciona o simulador ao path
+# Add the simulator to the import path / Adiciona o simulador ao path
 sys.path.insert(0, os.path.join(PROJECT_ROOT, 'simulator'))
 from riscv_sim import CPU, Memory, to_u32, to_s32
 
@@ -38,7 +39,8 @@ from riscv_sim import CPU, Memory, to_u32, to_s32
 # =============================================================================
 
 def _toolchain_available() -> bool:
-    """Verifica se o compilador RISC-V está instalado."""
+    """Check whether the RISC-V toolchain is installed.
+    Verifica se o compilador RISC-V está instalado."""
     try:
         subprocess.run(['riscv64-unknown-elf-as', '--version'],
                        capture_output=True, timeout=5)
@@ -49,8 +51,13 @@ def _toolchain_available() -> bool:
 
 def _compile_to_hex(asm_path: str) -> str:
     """
+    Compile a .s file to .hex in a temporary directory.
     Compila arquivo .s para .hex em diretório temporário.
+
+    Returns the path to the generated .hex file.
     Retorna o caminho do .hex gerado.
+
+    Raises subprocess.CalledProcessError on assembly error.
     Lança subprocess.CalledProcessError em caso de erro de montagem.
     """
     tmpdir = tempfile.mkdtemp()
@@ -76,7 +83,8 @@ def _compile_to_hex(asm_path: str) -> str:
 
 
 def _run(asm_path: str) -> CPU:
-    """Compila o arquivo .s e executa no simulador. Retorna a CPU no estado final."""
+    """Compile .s and run it in the simulator. Returns the CPU at final state.
+    Compila o arquivo .s e executa no simulador. Retorna a CPU no estado final."""
     if not _toolchain_available():
         raise unittest.SkipTest("Compilador riscv64-unknown-elf-as não encontrado.")
     hexf = _compile_to_hex(asm_path)
@@ -87,23 +95,27 @@ def _run(asm_path: str) -> CPU:
 
 
 def _gabarito(lista: str, nome: str) -> str:
-    """Retorna o caminho absoluto do arquivo de gabarito."""
+    """Return absolute path of the answer-key file.
+    Retorna o caminho absoluto do arquivo de gabarito."""
     return os.path.join(PROJECT_ROOT, 'exercicios', lista, 'gabarito', nome)
 
 
 def _reg(cpu: CPU, n: int) -> int:
-    """Retorna valor sem sinal do registrador n."""
+    """Return unsigned value of register n.
+    Retorna valor sem sinal do registrador n."""
     return cpu.regs[n]
 
 
 def _mem_word(cpu: CPU, addr: int) -> int:
-    """Retorna word de dados no endereço addr."""
+    """Return 32-bit data word at address addr.
+    Retorna word de dados no endereço addr."""
     mem = cpu.dmem if cpu.harvard else cpu.mem
     return mem.read32(addr)
 
 
 def _mem_byte(cpu: CPU, addr: int) -> int:
-    """Retorna byte de dados no endereço addr."""
+    """Return data byte at address addr.
+    Retorna byte de dados no endereço addr."""
     mem = cpu.dmem if cpu.harvard else cpu.mem
     return mem.read8(addr)
 
@@ -125,6 +137,7 @@ class TestLista1(unittest.TestCase):
         self.assertEqual(_reg(cpu, 3), 130)
         self.assertEqual(_reg(cpu, 4), 254)
         self.assertEqual(_reg(cpu, 5), 124)
+        # NOT of 202 in 32 bits = 0xFFFFFF35 = 4294967093 (or -203 signed)
         # NOT de 202 em 32 bits = 0xFFFFFF35 = 4294967093 (ou -203 signed)
         self.assertEqual(to_s32(_reg(cpu, 6)), -203)
 
@@ -301,6 +314,7 @@ class TestCapstone(unittest.TestCase):
 
 
 def main():
+    # Change to project root so relative paths work
     # Muda para o diretório raiz do projeto para que caminhos relativos funcionem
     os.chdir(PROJECT_ROOT)
 

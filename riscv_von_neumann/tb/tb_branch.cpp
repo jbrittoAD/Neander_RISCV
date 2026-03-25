@@ -55,28 +55,34 @@ int main(int argc, char** argv) {
 
     reset(dut, ctx);
 
+    // Enough cycles to run the entire program
     // Suficiente para executar todo o programa
     for (int i = 0; i < 40; i++)
         tick(dut, ctx);
 
     printf("[ Verificando registradores após execução ]\n");
 
-    // x1=5, x2=5 (valores iniciais)
+    // x1=5, x2=5 (initial values / valores iniciais)
     check(dut,  1, 5,   "addi: x1=5");
     check(dut,  2, 5,   "addi: x2=5");
 
+    // BEQ x1,x2 → taken → x3 must be 99 (NOT 1)
     // BEQ x1,x2 → tomado → x3 deve ser 99 (NÃO 1)
     check(dut,  3, 99,  "BEQ tomado: x3 deve ser 99");
 
+    // BNE x1,x2 → not taken (x1==x2) → x4=0
     // BNE x1,x2 → não tomado (x1==x2) → x4=0
     check(dut,  4, 0,   "BNE nao tomado: x4=0");
 
+    // BLT: 3 < 5 → taken → x5=1
     // BLT: 3 < 5 → tomado → x5=1
     check(dut,  5, 1,   "BLT tomado: x5=1");
 
+    // BGE: 5 >= 5 → taken → x6=1
     // BGE: 5 >= 5 → tomado → x6=1
     check(dut,  6, 1,   "BGE tomado: x6=1");
 
+    // BLTU: 0 < 0xFFFFFFFF → taken → x7=1
     // BLTU: 0 < 0xFFFFFFFF → tomado → x7=1
     check(dut,  7, 1,   "BLTU tomado: x7=1");
 

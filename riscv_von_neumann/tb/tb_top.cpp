@@ -11,6 +11,7 @@
 static int passed = 0;
 static int failed = 0;
 
+// Maximum clock cycles per test (max instructions to execute)
 // Clocks por teste (máximo de instruções a executar)
 static const int MAX_CYCLES = 200;
 
@@ -26,6 +27,7 @@ void reset(Vriscv_top* dut, VerilatedContext* ctx) {
     dut->rst_n = 1;
 }
 
+// Run N cycles and print debug state
 // Executa N ciclos e imprime estado de debug
 void run_cycles(Vriscv_top* dut, VerilatedContext* ctx, int cycles, bool verbose) {
     for (int i = 0; i < cycles; i++) {
@@ -62,10 +64,10 @@ int main(int argc, char** argv) {
     dut->rst_n = 1;
     dut->eval();
 
-    // Reset
+    // Reset / Reset
     reset(dut, ctx);
 
-    // Executa ciclos com saída de debug
+    // Run cycles with debug output / Executa ciclos com saída de debug
     printf("[ Execução do programa ]\n");
     run_cycles(dut, ctx, MAX_CYCLES, true);
 

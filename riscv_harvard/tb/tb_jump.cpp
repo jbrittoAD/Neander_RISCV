@@ -1,17 +1,19 @@
 // =============================================================================
 // Testbench — Jumps (test_jump.hex)
+// Validates: JAL (link and jump), JALR (indirect jump with return)
 // Valida: JAL (link e salto), JALR (salto indireto com retorno)
 //
+// Expected layout (see test_jump.s):
 // Layout esperado (ver test_jump.s):
-//   PC 0x00: jal x1, func_a    → x1=0x04, salta para 0x0C
-//   PC 0x04: addi x5,x0,77     → x5=77 (executado ao retornar)
-//   PC 0x0C: addi x2,x0,42     → x2=42 (em func_a)
-//   PC 0x10: jalr x0,x1,0      → retorna para 0x04
+//   PC 0x00: jal x1, func_a    → x1=0x04, jumps to 0x0C / salta para 0x0C
+//   PC 0x04: addi x5,x0,77     → x5=77 (executed on return / executado ao retornar)
+//   PC 0x0C: addi x2,x0,42     → x2=42 (in func_a / em func_a)
+//   PC 0x10: jalr x0,x1,0      → returns to 0x04 / retorna para 0x04
 //   PC 0x14: auipc x10,0       → x10=0x14
 //   PC 0x18: addi x10,x10,16   → x10=0x24 (func_b)
-//   PC 0x1C: jalr x3,x10,0     → x3=0x20, salta para 0x24
-//   PC 0x24: addi x4,x0,99     → x4=99 (em func_b)
-//   PC 0x28: jalr x0,x3,0      → retorna para 0x20
+//   PC 0x1C: jalr x3,x10,0     → x3=0x20, jumps to 0x24 / salta para 0x24
+//   PC 0x24: addi x4,x0,99     → x4=99 (in func_b / em func_b)
+//   PC 0x28: jalr x0,x3,0      → returns to 0x20 / retorna para 0x20
 //   PC 0x2C: loop
 // =============================================================================
 #include <verilated.h>
@@ -66,25 +68,29 @@ int main(int argc, char** argv) {
 
     reset(dut, ctx);
 
-    // Executa ciclos suficientes
+    // Run enough cycles / Executa ciclos suficientes
     for (int i = 0; i < 30; i++)
         tick(dut, ctx);
 
     printf("[ Verificando registradores após execução ]\n");
 
+    // JAL saves PC+4 = 0x04 into x1 (ra)
     // JAL salva PC+4 = 0x04 em x1 (ra)
     check(dut, 1, 0x00000004, "JAL: ra = PC+4 = 0x04");
 
     // func_a: addi x2, x0, 42
+    // In RISC-V ABI x2=sp, but in this test registers are used directly
     // No ABI RISC-V: x2=sp, mas em nosso teste usamos registradores diretamente
     check(dut, 2, 42,         "func_a: x2 = 42");
 
+    // JALR saves PC+4 = 0x20 into x3 (gp)
     // JALR salva PC+4 = 0x20 em x3 (gp)
     check(dut, 3, 0x00000020, "JALR: x3 = PC+4 = 0x20");
 
     // func_b: addi x4, x0, 99
     check(dut, 4, 99,         "func_b: x4 = 99");
 
+    // x5 = 77, executed after JAL return (PC=0x04)
     // x5 = 77, executado após retorno do JAL (PC=0x04)
     check(dut, 5, 77,         "retorno JAL: x5 = 77");
 

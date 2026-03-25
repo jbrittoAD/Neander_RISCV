@@ -1,4 +1,5 @@
 # =============================================================================
+# Makefile — RISC-V Von Neumann Processor (Verilator)
 # Makefile — Processador RISC-V Von Neumann (Verilator)
 # =============================================================================
 
@@ -23,6 +24,8 @@ VFLAGS_BASE := --cc --sv --exe --build \
 AS_FLAGS    := -march=rv32i -mabi=ilp32
 
 # =============================================================================
+# Main targets / Alvos principais
+# =============================================================================
 .PHONY: all programs alu regfile arith loadstore branch jump clean help
 
 all: programs alu regfile arith loadstore branch jump
@@ -31,6 +34,8 @@ all: programs alu regfile arith loadstore branch jump
 	@echo "  Todos os testes (Von Neumann) concluidos!"
 	@echo "============================================"
 
+# =============================================================================
+# Assemble test programs / Monta programas de teste
 # =============================================================================
 programs: $(PROG_DIR)/test_arith.hex \
           $(PROG_DIR)/test_load_store.hex \
@@ -62,6 +67,8 @@ $(PROG_DIR)/test_jump.hex: $(PROG_DIR)/test_jump.s
 	$(PYTHON) scripts/bin2hex.py $(PROG_DIR)/test_jump.bin $@
 
 # =============================================================================
+# ALU unit test / Teste da ALU (unitário)
+# =============================================================================
 alu: $(OBJ_DIR)/Valu
 	@echo ""
 	@echo "=== Executando teste da ALU ==="
@@ -74,6 +81,8 @@ $(OBJ_DIR)/Valu: $(SRC_DIR)/alu.sv $(TB_DIR)/tb_alu.cpp
 	    $(SRC_DIR)/alu.sv $(TB_DIR)/tb_alu.cpp -o Valu
 
 # =============================================================================
+# Register file unit test / Teste do Banco de Registradores (unitário)
+# =============================================================================
 regfile: $(OBJ_DIR)/Vregfile
 	@echo ""
 	@echo "=== Executando teste do Banco de Registradores ==="
@@ -85,6 +94,8 @@ $(OBJ_DIR)/Vregfile: $(SRC_DIR)/register_file.sv $(TB_DIR)/tb_regfile.cpp
 	$(VERILATOR) $(VFLAGS_BASE) --top-module register_file \
 	    $(SRC_DIR)/register_file.sv $(TB_DIR)/tb_regfile.cpp -o Vregfile
 
+# =============================================================================
+# Simulation binaries per testbench / Binários de simulação por testbench
 # =============================================================================
 $(OBJ_DIR)/Varith: $(SRC_DIR)/riscv_top.sv $(TB_DIR)/tb_arith.cpp
 	@mkdir -p $(OBJ_DIR)
@@ -106,6 +117,11 @@ $(OBJ_DIR)/Vjump: $(SRC_DIR)/riscv_top.sv $(TB_DIR)/tb_jump.cpp
 	$(VERILATOR) $(VFLAGS_BASE) --top-module riscv_top \
 	    $(SRC_DIR)/riscv_top.sv $(TB_DIR)/tb_jump.cpp -o Vjump
 
+# =============================================================================
+# Run integrated tests
+# (copies the correct hex to sim/program.hex and executes from there)
+# Execução dos testes integrados
+# (copia o hex correto para sim/program.hex e executa de lá)
 # =============================================================================
 arith: $(OBJ_DIR)/Varith $(PROG_DIR)/test_arith.hex
 	@mkdir -p $(SIM_DIR)
@@ -139,6 +155,8 @@ jump: $(OBJ_DIR)/Vjump $(PROG_DIR)/test_jump.hex
 	cd $(SIM_DIR) && ../$(OBJ_DIR)/Vjump
 	@echo ""
 
+# =============================================================================
+# Cleanup / Limpeza
 # =============================================================================
 clean:
 	rm -rf $(OBJ_DIR) $(SIM_DIR)

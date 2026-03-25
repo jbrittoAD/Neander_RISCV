@@ -1,14 +1,16 @@
 # =============================================================================
 # Gabarito — Lista 3, Exercício 11: Soma de array com ponteiro
+# Answer key — List 3, Exercise 11: Array sum with pointer
 # =============================================================================
 # Array: [5, 10, 15, 20, 25, 30]
+# Expected result: x2 = 105
 # Resultado esperado: x2 = 105
 
 .section .text
 .global _start
 _start:
-    # ─── Inicializa array ─────────────────────────────────────────────
-    addi  x1, x0, 0          # x1 = ponteiro = endereço base = 0
+    # ─── Initialize array / Inicializa array ─────────────────────────────────────────────
+    addi  x1, x0, 0          # x1 = pointer = base address = 0 / ponteiro = endereço base = 0
 
     addi  x10, x0, 5
     sw    x10, 0(x1)
@@ -23,19 +25,20 @@ _start:
     addi  x10, x0, 30
     sw    x10, 20(x1)
 
-    # ─── Soma com ponteiro ────────────────────────────────────────────
-    addi  x2, x0, 0          # x2 = soma = 0
-    addi  x1, x0, 0          # x1 = ponteiro = base
+    # ─── Sum with pointer / Soma com ponteiro ────────────────────────────────────────────
+    addi  x2, x0, 0          # x2 = sum = 0 / soma = 0
+    addi  x1, x0, 0          # x1 = pointer = base / ponteiro = base
 
+    # x5 = end address = base + N*4 = 0 + 6*4 = 24
     # x5 = endereço do fim = base + N*4 = 0 + 6*4 = 24
-    addi  x5, x0, 24         # x5 = endereço fim (exclusivo)
+    addi  x5, x0, 24         # x5 = end address (exclusive) / endereço fim (exclusivo)
 
 loop:
-    bge   x1, x5, fim        # se ponteiro >= fim, termina
+    bge   x1, x5, fim        # if pointer >= end, finish / se ponteiro >= fim, termina
 
-    lw    x3, 0(x1)          # x3 = *ponteiro
-    add   x2, x2, x3         # soma += x3
-    addi  x1, x1, 4          # ponteiro++ (avança 4 bytes = 1 word)
+    lw    x3, 0(x1)          # x3 = *pointer / *ponteiro
+    add   x2, x2, x3         # sum += x3 / soma += x3
+    addi  x1, x1, 4          # pointer++ (advance 4 bytes = 1 word / avança 4 bytes = 1 word)
 
     jal   x0, loop
 

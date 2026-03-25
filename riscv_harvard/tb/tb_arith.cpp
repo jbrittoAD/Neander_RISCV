@@ -1,5 +1,7 @@
 // =============================================================================
+// Testbench — Arithmetic Test (test_arith.hex)
 // Testbench — Teste Aritmético (test_arith.hex)
+// Validates: ADDI, ADD, SUB, AND, OR, XOR, SLTI, SLLI, SRLI, SRAI, SLT, SLTU
 // Valida: ADDI, ADD, SUB, AND, OR, XOR, SLTI, SLLI, SRLI, SRAI, SLT, SLTU
 // =============================================================================
 #include <verilated.h>
@@ -54,6 +56,7 @@ int main(int argc, char** argv) {
 
     reset(dut, ctx);
 
+    // Run enough cycles for 15 instructions + loop
     // Executa instruções suficientes (15 instruções + loop)
     for (int i = 0; i < 20; i++)
         tick(dut, ctx);

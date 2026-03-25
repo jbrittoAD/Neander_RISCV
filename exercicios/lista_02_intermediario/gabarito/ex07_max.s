@@ -1,6 +1,8 @@
 # =============================================================================
 # Gabarito — Lista 2, Exercício 7: Máximo de dois números (com sinal)
+# Answer key — List 2, Exercise 7: Maximum of two signed numbers
 # =============================================================================
+# Expected result: x3 = 3 (max(-5, 3))
 # Resultado esperado: x3 = 3 (max(-5, 3))
 
 .section .text
@@ -9,13 +11,14 @@ _start:
     addi  x1, x0, -5         # x1 = -5
     addi  x2, x0, 3          # x2 = 3
 
+    # If x1 >= x2, maximum is x1; otherwise it is x2
     # Se x1 >= x2, máximo é x1; senão é x2
-    blt   x1, x2, x2_maior   # se x1 < x2 (com sinal), pula para x2_maior
-    addi  x3, x1, 0          # x3 = x1 (x1 é o maior)
+    blt   x1, x2, x2_maior   # if x1 < x2 (signed), jump to x2_maior / se x1 < x2 (com sinal), pula para x2_maior
+    addi  x3, x1, 0          # x3 = x1 (x1 is greater / x1 é o maior)
     jal   x0, fim
 
 x2_maior:
-    addi  x3, x2, 0          # x3 = x2 (x2 é o maior)
+    addi  x3, x2, 0          # x3 = x2 (x2 is greater / x2 é o maior)
 
 fim:
     jal   x0, fim            # x3 = 3 ✓

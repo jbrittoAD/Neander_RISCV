@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
 # =============================================================================
+# install.sh — Installs project dependencies for RISC-V RV32I
 # install.sh — Instala as dependências do projeto RISC-V RV32I
 # =============================================================================
 #
+# Automatically installs:
 # Instala automaticamente:
-#   - riscv-gnu-toolchain (compilador assembly RISC-V)
-#   - verilator           (simulador de hardware SystemVerilog)
-#   - python3             (simulador interativo Python)
+#   - riscv-gnu-toolchain (RISC-V assembly compiler / compilador assembly RISC-V)
+#   - verilator           (SystemVerilog hardware simulator / simulador de hardware SystemVerilog)
+#   - python3             (interactive Python simulator / simulador interativo Python)
 #
-# Plataformas suportadas:
+# Supported platforms / Plataformas suportadas:
 #   - macOS (via Homebrew)
-#   - Ubuntu / Debian (via apt + fontes oficiais)
-#   - Outras distribuições Linux: instruções manuais exibidas
+#   - Ubuntu / Debian (via apt + official sources / fontes oficiais)
+#   - Other Linux distributions: manual instructions displayed / Outras distribuições Linux: instruções manuais exibidas
 #
-# Uso:
+# Usage / Uso:
 #   chmod +x install.sh
 #   ./install.sh
 #
@@ -21,7 +23,7 @@
 
 set -euo pipefail
 
-# ── Cores ────────────────────────────────────────────────────────────────────
+# ── Colors / Cores ────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 CYAN='\033[0;36m'; BOLD='\033[1m'; RESET='\033[0m'
 
@@ -31,7 +33,7 @@ warn()    { echo -e "${YELLOW}[AVISO]${RESET} $*"; }
 error()   { echo -e "${RED}[ERRO]${RESET}  $*" >&2; }
 section() { echo -e "\n${BOLD}${CYAN}══ $* ══${RESET}"; }
 
-# ── Detectar SO ───────────────────────────────────────────────────────────────
+# ── Detect OS / Detectar SO ───────────────────────────────────────────────────
 detect_os() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
         echo "macos"
@@ -48,7 +50,7 @@ detect_os() {
 
 OS=$(detect_os)
 
-# ── Verificar se ferramenta está instalada ────────────────────────────────────
+# ── Check whether a tool is installed / Verificar se ferramenta está instalada ─
 check_tool() {
     local cmd="$1"
     local name="$2"
@@ -79,7 +81,7 @@ echo ""
 install_macos() {
     section "macOS — Homebrew"
 
-    # Verifica Homebrew
+    # Check for Homebrew / Verifica Homebrew
     if ! command -v brew &>/dev/null; then
         warn "Homebrew não encontrado. Instalando..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -97,7 +99,7 @@ install_macos() {
         brew install python
     fi
 
-    # RISC-V toolchain
+    # RISC-V toolchain / Compilador RISC-V
     section "Compilador RISC-V (riscv-gnu-toolchain)"
     if ! check_tool riscv64-unknown-elf-as "riscv64-unknown-elf-as"; then
         info "Instalando riscv-gnu-toolchain (pode demorar alguns minutos)..."
@@ -135,6 +137,7 @@ install_debian() {
         sudo apt-get install -y verilator
         local ver
         ver=$(verilator --version 2>&1 | head -1)
+        # Verilator 4.x may not support some features; recommend 5.x
         # Verilator 4.x pode não suportar alguns recursos; recomendar 5.x
         if verilator --version 2>&1 | grep -qE "^Verilator [0-9]\.[0-3]"; then
             warn "Versão instalada pode ser antiga. Testado com Verilator 5.x."
@@ -142,7 +145,7 @@ install_debian() {
         fi
     fi
 
-    # RISC-V toolchain — mais complexo no Linux
+    # RISC-V toolchain — more complex on Linux / mais complexo no Linux
     section "Compilador RISC-V (riscv64-unknown-elf-as)"
     if ! check_tool riscv64-unknown-elf-as "riscv64-unknown-elf-as"; then
         info "Tentando instalar gcc-riscv64-unknown-elf via apt..."
@@ -155,6 +158,7 @@ install_debian() {
     fi
 }
 
+# Install xpack RISC-V toolchain (pre-compiled binaries for Linux)
 # Instala xpack RISC-V toolchain (binários pré-compilados para Linux)
 _install_riscv_linux_xpack() {
     local XPACK_VER="13.2.0-2"
@@ -193,7 +197,7 @@ install_redhat() {
     echo ""
     echo "  Instale manualmente:"
     echo "    sudo dnf install python3 verilator"
-    echo "    # Para o toolchain RISC-V, veja: https://github.com/riscv-collab/riscv-gnu-toolchain"
+    echo "    # For the RISC-V toolchain, see / Para o toolchain RISC-V, veja: https://github.com/riscv-collab/riscv-gnu-toolchain"
     echo ""
     exit 1
 }
@@ -221,7 +225,7 @@ install_arch() {
 }
 
 # =============================================================================
-# SO desconhecido
+# Unknown OS / SO desconhecido
 # =============================================================================
 install_unknown() {
     error "Sistema operacional não reconhecido: $OS"
@@ -235,7 +239,7 @@ install_unknown() {
 }
 
 # =============================================================================
-# Instalar conforme o SO
+# Install according to the detected OS / Instalar conforme o SO
 # =============================================================================
 case "$OS" in
     macos)   install_macos   ;;
@@ -246,7 +250,7 @@ case "$OS" in
 esac
 
 # =============================================================================
-# Verificação final
+# Final verification / Verificação final
 # =============================================================================
 section "Verificação final"
 
@@ -266,6 +270,7 @@ verify() {
 verify python3              "Python 3"
 verify verilator            "Verilator"
 
+# Accept both riscv64-unknown-elf-as and riscv-none-elf-as
 # Aceita tanto riscv64-unknown-elf-as quanto riscv-none-elf-as
 if command -v riscv64-unknown-elf-as &>/dev/null; then
     ok "Assembler RISC-V: $(command -v riscv64-unknown-elf-as)"
@@ -281,7 +286,7 @@ fi
 echo ""
 
 # =============================================================================
-# Teste rápido do simulador Python
+# Quick Python simulator test / Teste rápido do simulador Python
 # =============================================================================
 section "Teste rápido do simulador"
 
@@ -302,7 +307,7 @@ else
 fi
 
 # =============================================================================
-# Resumo
+# Summary / Resumo
 # =============================================================================
 echo ""
 if [[ $FAIL -eq 0 ]]; then

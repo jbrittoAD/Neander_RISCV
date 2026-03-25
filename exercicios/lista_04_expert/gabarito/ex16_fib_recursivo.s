@@ -1,87 +1,97 @@
 # =============================================================================
 # Gabarito — Lista 4, Exercício 16: Fibonacci Recursivo
+# Answer key — List 4, Exercise 16: Recursive Fibonacci
 # =============================================================================
-# Descrição:
+# Description / Descrição:
+#   Computes fib(8) using recursion and the stack, following the RISC-V
+#   calling convention (arguments in a0, return in a0, ra and s-regs saved on stack).
+#
 #   Calcula fib(8) usando recursão e pilha, seguindo a convenção de chamada
 #   RISC-V (argumentos em a0, retorno em a0, ra e s-regs salvos na pilha).
 #
-# Mapa de registradores:
-#   a0  (x10) — argumento n / valor de retorno fib(n)
-#   ra  (x1)  — endereço de retorno (salvo na pilha)
-#   s0  (x8)  — cópia de n dentro da função (salvo na pilha)
-#   s1  (x9)  — resultado parcial fib(n-1) (salvo na pilha, pois é callee-saved)
-#   t0  (x5)  — constante 1 (para comparação do caso base)
-#   sp  (x2)  — ponteiro de pilha (inicializado em 0x400)
+# Register map / Mapa de registradores:
+#   a0  (x10) — argument n / return value fib(n) / argumento n / valor de retorno fib(n)
+#   ra  (x1)  — return address (saved on stack) / endereço de retorno (salvo na pilha)
+#   s0  (x8)  — copy of n inside function (saved on stack) / cópia de n dentro da função (salvo na pilha)
+#   s1  (x9)  — partial result fib(n-1) (saved on stack, callee-saved) / resultado parcial fib(n-1) (salvo na pilha, callee-saved)
+#   t0  (x5)  — constant 1 (for base-case comparison) / constante 1 (para comparação do caso base)
+#   sp  (x2)  — stack pointer (initialized at 0x400) / ponteiro de pilha (inicializado em 0x400)
 #
-# Mapa da pilha (frame de 12 bytes por chamada):
-#   sp+8 → ra  (endereço de retorno)
-#   sp+4 → s0  (valor de n)
-#   sp+0 → s1  (resultado parcial fib(n-1))
+# Stack frame (12 bytes per call) / Mapa da pilha (frame de 12 bytes por chamada):
+#   sp+8 → ra  (return address / endereço de retorno)
+#   sp+4 → s0  (value of n / valor de n)
+#   sp+0 → s1  (partial result fib(n-1) / resultado parcial fib(n-1))
 #
-# Por que salvar s1?
-#   s1 é um registrador callee-saved: a função deve preservá-lo para o
-#   chamador. Como usamos s1 para armazenar fib(n-1) entre as duas chamadas
-#   recursivas, precisamos salvá-lo na pilha e restaurá-lo no epílogo.
+# Why save s1? / Por que salvar s1?
+#   s1 is a callee-saved register: the function must preserve it for the caller.
+#   Since we use s1 to store fib(n-1) between the two recursive calls, we must
+#   save it on the stack and restore it in the epilogue.
 #
-# Resultado esperado:
+#   s1 é um registrador callee-saved: a função deve preservá-lo para o chamador.
+#   Como usamos s1 para armazenar fib(n-1) entre as duas chamadas recursivas,
+#   precisamos salvá-lo na pilha e restaurá-lo no epílogo.
+#
+# Expected result / Resultado esperado:
 #   x10 = 21  (fib(8) = 21)
 #
-# Como verificar:
+# How to verify / Como verificar:
 #   riscv64-unknown-elf-as -march=rv32i -mabi=ilp32 -o ex16.o ex16_fib_recursivo.s
 #   riscv64-unknown-elf-objcopy -O binary ex16.o ex16.bin
 #   python3 ../../../../riscv_harvard/scripts/bin2hex.py ex16.bin ex16.hex
 #   python3 ../../../../simulator/riscv_sim.py ex16.hex --run
-#   # Verificar: a0 (x10) = 21
+#   # Verify: a0 (x10) = 21 / Verificar: a0 (x10) = 21
 # =============================================================================
 
 .section .text
 .global _start
 
 _start:
-    addi sp, x0, 0x400    # sp = 1024 (topo da pilha, cresce para baixo)
-    addi a0, x0, 8        # argumento: n = 8
-    jal  ra, fib          # chama fib(8) — ra recebe endereço de retorno
-    jal  x0, fim          # halt (a0 = fib(8) = 21)
+    addi sp, x0, 0x400    # sp = 1024 (stack top, grows downward / topo da pilha, cresce para baixo)
+    addi a0, x0, 8        # argument: n = 8 / argumento: n = 8
+    jal  ra, fib          # call fib(8) — ra gets return address / chama fib(8) — ra recebe endereço de retorno
+    jal  x0, fim          # halt (a0 = fib(8) = 21) / parada (a0 = fib(8) = 21)
 
 # =============================================================================
-# Função: fib
-# Entrada:  a0 = n
-# Saída:    a0 = fib(n)
-# Salva na pilha: ra (x1), s0 (x8), s1 (x9)
-# Frame de 12 bytes: sp-=12; [sp+8]=ra; [sp+4]=s0; [sp+0]=s1
+# Function: fib / Função: fib
+# Input:  a0 = n / Entrada:  a0 = n
+# Output: a0 = fib(n) / Saída:    a0 = fib(n)
+# Saved on stack: ra (x1), s0 (x8), s1 (x9)
+# Salvos na pilha: ra (x1), s0 (x8), s1 (x9)
+# Frame: 12 bytes: sp-=12; [sp+8]=ra; [sp+4]=s0; [sp+0]=s1
 # =============================================================================
 fib:
-    addi sp, sp, -12      # abre frame de 12 bytes na pilha
-    sw   ra, 8(sp)        # salva endereço de retorno
-    sw   s0, 4(sp)        # salva s0 (registrador callee-saved)
-    sw   s1, 0(sp)        # salva s1 (registrador callee-saved)
+    addi sp, sp, -12      # open 12-byte frame on stack / abre frame de 12 bytes na pilha
+    sw   ra, 8(sp)        # save return address / salva endereço de retorno
+    sw   s0, 4(sp)        # save s0 (callee-saved register / registrador callee-saved)
+    sw   s1, 0(sp)        # save s1 (callee-saved register / registrador callee-saved)
 
-    addi s0, a0, 0        # s0 = n  (guarda n para uso posterior)
+    addi s0, a0, 0        # s0 = n  (stores n for later use / guarda n para uso posterior)
 
-    addi t0, x0, 1        # t0 = 1  (limiar do caso base)
-    bgt  s0, t0, fib_recursivo   # se n > 1, vai para parte recursiva
+    addi t0, x0, 1        # t0 = 1  (base-case threshold / limiar do caso base)
+    bgt  s0, t0, fib_recursivo   # if n > 1, go to recursive part / se n > 1, vai para parte recursiva
 
+    # Base case: fib(0)=0 or fib(1)=1 — returns n (already in a0)
     # Caso base: fib(0)=0 ou fib(1)=1  — retorna n (já está em a0)
-    addi a0, s0, 0        # a0 = n  (0 ou 1)
-    jal  x0, fib_retorna  # pula para o epílogo
+    addi a0, s0, 0        # a0 = n  (0 or 1 / 0 ou 1)
+    jal  x0, fib_retorna  # jump to epilogue / pula para o epílogo
 
 fib_recursivo:
-    addi a0, s0, -1       # a0 = n-1  (argumento para fib(n-1))
-    jal  ra, fib          # chama fib(n-1) — resultado em a0
+    addi a0, s0, -1       # a0 = n-1  (argument for fib(n-1) / argumento para fib(n-1))
+    jal  ra, fib          # call fib(n-1) — result in a0 / chama fib(n-1) — resultado em a0
 
-    addi s1, a0, 0        # s1 = fib(n-1)  (s1 é callee-saved: não será corrompido)
+    addi s1, a0, 0        # s1 = fib(n-1)  (callee-saved: will not be corrupted / callee-saved: não será corrompido)
 
-    addi a0, s0, -2       # a0 = n-2  (argumento para fib(n-2))
-    jal  ra, fib          # chama fib(n-2) — resultado em a0
+    addi a0, s0, -2       # a0 = n-2  (argument for fib(n-2) / argumento para fib(n-2))
+    jal  ra, fib          # call fib(n-2) — result in a0 / chama fib(n-2) — resultado em a0
 
     add  a0, a0, s1       # a0 = fib(n-2) + fib(n-1) = fib(n)
 
 fib_retorna:
-    lw   ra, 8(sp)        # restaura endereço de retorno
-    lw   s0, 4(sp)        # restaura s0
-    lw   s1, 0(sp)        # restaura s1
-    addi sp, sp, 12       # fecha frame da pilha
-    jalr x0, ra, 0        # retorna para o chamador
+    lw   ra, 8(sp)        # restore return address / restaura endereço de retorno
+    lw   s0, 4(sp)        # restore s0 / restaura s0
+    lw   s1, 0(sp)        # restore s1 / restaura s1
+    addi sp, sp, 12       # close stack frame / fecha frame da pilha
+    jalr x0, ra, 0        # return to caller / retorna para o chamador
 
 fim:
-    jal x0, fim           # halt — loop infinito (equivalente ao HLT)
+    jal x0, fim           # halt — infinite loop (equivalent to HLT) / parada — loop infinito (equivalente ao HLT)

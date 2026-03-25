@@ -1,5 +1,7 @@
 // =============================================================================
+// ALU Testbench — Verilator C++
 // Testbench da ALU — Verilator C++
+// Tests all 10 RV32I operations: ADD, SUB, AND, OR, XOR,
 // Testa todas as 10 operações do RV32I: ADD, SUB, AND, OR, XOR,
 // SLL, SRL, SRA, SLT, SLTU
 // =============================================================================
@@ -8,6 +10,7 @@
 #include <cstdio>
 #include <cstdint>
 
+// Operation encoding (must match alu.sv)
 // Codificação das operações (deve casar com alu.sv)
 enum AluOp {
     ALU_ADD  = 0,
@@ -25,6 +28,7 @@ enum AluOp {
 static int passed = 0;
 static int failed = 0;
 
+// Evaluates a test case and reports the result
 // Avalia um caso de teste e reporta resultado
 void check(Valu* dut, uint32_t a, uint32_t b, AluOp op,
            uint32_t expected_result, bool expected_zero,
@@ -98,7 +102,7 @@ int main(int argc, char** argv) {
     check(dut, 0xA5A5A5A5, 0x5A5A5A5A, ALU_XOR, 0xFFFFFFFF,  false, "XOR padrao xadrez");
 
     // ------------------------------------------------------------------
-    // SLL (shift left logical)
+    // SLL (shift left logical) / SLL (deslocamento lógico à esquerda)
     // ------------------------------------------------------------------
     printf("[ SLL ]\n");
     check(dut, 1,          4,          ALU_SLL, 16,          false, "1 << 4 = 16");
@@ -106,21 +110,21 @@ int main(int argc, char** argv) {
     check(dut, 1,          32,         ALU_SLL, 1,           false, "shamt 5 bits: 32 & 31 = 0");
 
     // ------------------------------------------------------------------
-    // SRL (shift right logical)
+    // SRL (shift right logical) / SRL (deslocamento lógico à direita)
     // ------------------------------------------------------------------
     printf("[ SRL ]\n");
     check(dut, 0x80000000, 1,          ALU_SRL, 0x40000000,  false, "SRL sem extensao de sinal");
     check(dut, 16,         4,          ALU_SRL, 1,           false, "16 >> 4 = 1");
 
     // ------------------------------------------------------------------
-    // SRA (shift right arithmetic)
+    // SRA (shift right arithmetic) / SRA (deslocamento aritmético à direita)
     // ------------------------------------------------------------------
     printf("[ SRA ]\n");
     check(dut, 0x80000000, 1,          ALU_SRA, 0xC0000000,  false, "SRA com extensao de sinal");
     check(dut, (uint32_t)(-8), 2,      ALU_SRA, (uint32_t)(-2), false, "-8 >> 2 = -2");
 
     // ------------------------------------------------------------------
-    // SLT (set less than, com sinal)
+    // SLT (set less than, signed) / SLT (set less than, com sinal)
     // ------------------------------------------------------------------
     printf("[ SLT ]\n");
     check(dut, (uint32_t)(-1), 0,      ALU_SLT, 1,           false, "-1 < 0 (com sinal) = 1");
@@ -128,7 +132,7 @@ int main(int argc, char** argv) {
     check(dut, 5,          5,          ALU_SLT, 0,           true,  "5 < 5 = 0");
 
     // ------------------------------------------------------------------
-    // SLTU (set less than, sem sinal)
+    // SLTU (set less than, unsigned) / SLTU (set less than, sem sinal)
     // ------------------------------------------------------------------
     printf("[ SLTU ]\n");
     check(dut, 0,          0xFFFFFFFF, ALU_SLTU, 1,          false, "0 < 0xFFFFFFFF (sem sinal) = 1");
@@ -136,7 +140,7 @@ int main(int argc, char** argv) {
     check(dut, 3,          3,          ALU_SLTU, 0,          true,  "3 < 3 = 0");
 
     // ------------------------------------------------------------------
-    // Resultado final
+    // Final results / Resultado final
     // ------------------------------------------------------------------
     printf("\n===================================\n");
     printf("Resultados: %d aprovados, %d reprovados\n", passed, failed);

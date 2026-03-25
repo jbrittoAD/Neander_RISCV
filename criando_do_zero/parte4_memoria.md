@@ -24,7 +24,7 @@ Na arquitetura **Harvard**, as memórias são fisicamente separadas e têm barra
   │  ┌───┐   ┌────────┐ │          │  ┌───┐              │
   │  │ PC│──►│ROM     │ │          │  │ PC│──┐           │
   │  └───┘   │(instrs)│ │          │  └───┘  │           │
-  │          └────────┘ │          │         │ barramento │
+  │          └────────┘ │          │         │ barramento│
   │          ┌────────┐ │          │  ┌──────┴──────────┐│
   │  ALU ───►│RAM     │ │          │  │   MEMÓRIA ÚNICA ││
   │          │(dados) │ │          │  │  (instrs+dados) ││
@@ -36,7 +36,7 @@ Na arquitetura **Harvard**, as memórias são fisicamente separadas e têm barra
 
 Para o processador single-cycle, Harvard é a escolha direta: cada componente tem sua função bem definida, a interface é simples e não há conflito de acesso.
 
-**Trade-off:** Em hardware real, Harvard puro desperdiça espaço — a ROM para instruções e a RAM para dados são circuitos diferentes, e o espaço de endereçamento não é compartilhado. É por isso que processadores modernos usam caches separadas (L1-I e L1-D), que oferecem o benefício de banda Harvard no nível de cache mas têm memória DRAM unificada abaixo. Estudaremos Von Neumann na Parte 7.
+**Trade-off:** Em hardware real, Harvard puro desperdiça espaço — a ROM para instruções e a RAM para dados são circuitos diferentes, e o espaço de endereçamento não é compartilhado. É por isso que processadores modernos usam caches separadas (L1-I e L1-D), que oferecem o benefício de banda Harvard no nível de cache mas têm memória DRAM unificada abaixo. Voltaremos ao Von Neumann na Parte 7.
 
 ---
 

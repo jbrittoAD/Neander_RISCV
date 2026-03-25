@@ -2,7 +2,7 @@
 // Testbench — Jumps (test_jump.hex)
 // Valida: JAL (link e salto), JALR (salto indireto com retorno)
 //
-// Layout esperado (ver test_jump.s):
+// Expected layout (see test_jump.s) / Layout esperado (ver test_jump.s):
 //   PC 0x00: jal x1, func_a    → x1=0x04, salta para 0x0C
 //   PC 0x04: addi x5,x0,77     → x5=77 (executado ao retornar)
 //   PC 0x0C: addi x2,x0,42     → x2=42 (em func_a)
@@ -66,25 +66,29 @@ int main(int argc, char** argv) {
 
     reset(dut, ctx);
 
-    // Executa ciclos suficientes
+    // Run enough cycles / Executa ciclos suficientes
     for (int i = 0; i < 30; i++)
         tick(dut, ctx);
 
     printf("[ Verificando registradores após execução ]\n");
 
+    // JAL saves PC+4 = 0x04 in x1 (ra)
     // JAL salva PC+4 = 0x04 em x1 (ra)
     check(dut, 1, 0x00000004, "JAL: ra = PC+4 = 0x04");
 
     // func_a: addi x2, x0, 42
+    // In RISC-V ABI x2=sp, but here we use registers directly
     // No ABI RISC-V: x2=sp, mas em nosso teste usamos registradores diretamente
     check(dut, 2, 42,         "func_a: x2 = 42");
 
+    // JALR saves PC+4 = 0x20 in x3 (gp)
     // JALR salva PC+4 = 0x20 em x3 (gp)
     check(dut, 3, 0x00000020, "JALR: x3 = PC+4 = 0x20");
 
     // func_b: addi x4, x0, 99
     check(dut, 4, 99,         "func_b: x4 = 99");
 
+    // x5 = 77, executed after JAL return (PC=0x04)
     // x5 = 77, executado após retorno do JAL (PC=0x04)
     check(dut, 5, 77,         "retorno JAL: x5 = 77");
 

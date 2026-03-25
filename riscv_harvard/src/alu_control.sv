@@ -1,23 +1,29 @@
 // =============================================================================
+// ALU Control Unit
 // Unidade de Controle da ALU
+// Decodes funct3/funct7 and ALUOp to generate the ALU opcode
 // Decodifica funct3/funct7 e ALUOp para gerar o opcode da ALU
 //
 // ALUOp:
+//   00 → ADD (load/store: computes address)
 //   00 → ADD (load/store: calcula endereço)
+//   01 → Branch comparison (decodes funct3)
 //   01 → Comparação de branch (decodifica funct3)
+//   10 → R-type (decodes funct3 + funct7)
 //   10 → R-type (decodifica funct3 + funct7)
+//   11 → Arithmetic I-type (decodes funct3)
 //   11 → I-type aritmético (decodifica funct3)
 // =============================================================================
 module alu_control (
-    input  logic [1:0] alu_op,     // Vem da unidade de controle principal
-    input  logic [2:0] funct3,     // Campo funct3 da instrução
-    input  logic [6:0] funct7,     // Campo funct7 da instrução
+    input  logic [1:0] alu_op,     // Comes from the main control unit / Vem da unidade de controle principal
+    input  logic [2:0] funct3,     // funct3 field of the instruction / Campo funct3 da instrução
+    input  logic [6:0] funct7,     // funct7 field of the instruction / Campo funct7 da instrução
 
-    output logic [3:0] alu_sel,    // Operação para a ALU
-    output logic       branch_inv  // 1 = inverter resultado da comparação de branch
+    output logic [3:0] alu_sel,    // Operation for the ALU / Operação para a ALU
+    output logic       branch_inv  // 1 = invert branch comparison result / 1 = inverter resultado da comparação de branch
 );
 
-    // Codificações ALU (deve casar com alu.sv)
+    // ALU encodings (must match alu.sv) / Codificações ALU (deve casar com alu.sv)
     localparam ALU_ADD  = 4'b0000;
     localparam ALU_SUB  = 4'b0001;
     localparam ALU_AND  = 4'b0010;
@@ -32,9 +38,11 @@ module alu_control (
     always_comb begin
         branch_inv = 1'b0;
         case (alu_op)
+            // Load / Store: always ADD to compute address
             // Load / Store: sempre ADD para calcular endereço
             2'b00: alu_sel = ALU_ADD;
 
+            // Branch: compare rs1 and rs2 according to funct3
             // Branch: compara rs1 e rs2 de acordo com funct3
             2'b01: begin
                 case (funct3)
@@ -48,6 +56,7 @@ module alu_control (
                 endcase
             end
 
+            // R-type: decode funct3 and funct7
             // R-type: decodifica funct3 e funct7
             2'b10: begin
                 case (funct3)
@@ -63,6 +72,7 @@ module alu_control (
                 endcase
             end
 
+            // Arithmetic I-type: decode funct3 (no funct7, except SRAI)
             // I-type aritmético: decodifica funct3 (sem funct7, exceto SRAI)
             2'b11: begin
                 case (funct3)

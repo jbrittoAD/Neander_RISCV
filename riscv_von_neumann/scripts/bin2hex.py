@@ -15,7 +15,7 @@ if len(sys.argv) != 3:
 with open(sys.argv[1], 'rb') as f:
     data = f.read()
 
-# Garante alinhamento de 4 bytes
+# Pad to 4-byte alignment / Garante alinhamento de 4 bytes
 while len(data) % 4:
     data += b'\x00'
 

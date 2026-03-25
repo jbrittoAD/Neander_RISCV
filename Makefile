@@ -1,19 +1,22 @@
 # =============================================================================
+# Root Makefile — RISC-V RV32I Processor (Harvard + Von Neumann)
 # Makefile raiz — Processador RISC-V RV32I (Harvard + Von Neumann)
 # =============================================================================
 #
+# Runs all project stages: Verilator hardware, Python simulator,
+# examples and exercise answer keys.
 # Executa todas as etapas do projeto: hardware Verilator, simulador Python,
 # exemplos e gabaritos de exercícios.
 #
-# Uso rápido:
-#   make all           — testa hardware + simulador + exemplos + gabaritos
-#   make test          — apenas os testes (hardware + simulador + gabaritos)
-#   make sim-test      — apenas os testes do simulador Python
-#   make hw-test       — apenas os testes Verilator (Harvard + Von Neumann)
-#   make exemplos      — compila e verifica os programas de exemplo
-#   make gabaritos     — verifica automaticamente todos os 20 gabaritos
-#   make clean         — remove todos os arquivos gerados
-#   make help          — esta ajuda
+# Quick usage / Uso rápido:
+#   make all           — test hardware + simulator + examples + keys / testa hardware + simulador + exemplos + gabaritos
+#   make test          — tests only (hardware + simulator + keys) / apenas os testes (hardware + simulador + gabaritos)
+#   make sim-test      — Python simulator tests only / apenas os testes do simulador Python
+#   make hw-test       — Verilator tests only (Harvard + Von Neumann) / apenas os testes Verilator (Harvard + Von Neumann)
+#   make exemplos      — compile and verify example programs / compila e verifica os programas de exemplo
+#   make gabaritos     — automatically verify all 20 answer keys / verifica automaticamente todos os 20 gabaritos
+#   make clean         — remove all generated files / remove todos os arquivos gerados
+#   make help          — this help / esta ajuda
 
 PYTHON := python3
 MAKE   := make --no-print-directory
@@ -23,7 +26,7 @@ MAKE   := make --no-print-directory
         docker-build docker-run docker-test docker-compose-run
 
 # =============================================================================
-# Alvo padrão
+# Default target / Alvo padrão
 # =============================================================================
 all: hw-test sim-test exemplos gabaritos
 	@echo ""
@@ -32,14 +35,14 @@ all: hw-test sim-test exemplos gabaritos
 	@echo "╚══════════════════════════════════════════════════════╝"
 
 # =============================================================================
-# Testes (sem compilar exemplos novamente)
+# Tests (without recompiling examples) / Testes (sem compilar exemplos novamente)
 # =============================================================================
 test: hw-test sim-test gabaritos
 	@echo ""
 	@echo "  [OK] Todos os testes passaram."
 
 # =============================================================================
-# Hardware Verilator
+# Verilator Hardware / Hardware Verilator
 # =============================================================================
 hw-test: harvard vonneumann
 
@@ -52,20 +55,21 @@ vonneumann:
 	$(MAKE) -C riscv_von_neumann all
 
 # =============================================================================
-# Simulador Python
+# Python Simulator / Simulador Python
 # =============================================================================
 sim-test:
 	@echo "--- Testes do simulador Python (89 verificações) ---"
 	$(PYTHON) simulator/tests/test_core.py 2>&1 | tail -4
 
 # =============================================================================
-# Exemplos
+# Examples / Exemplos
 # =============================================================================
 exemplos:
 	@echo "--- Compilando e verificando exemplos ---"
 	$(MAKE) -C exemplos all
 
 # =============================================================================
+# Answer keys: automatically verify all 20 exercises
 # Gabaritos: verifica todos os 20 exercícios automaticamente
 # =============================================================================
 gabaritos:
@@ -73,7 +77,7 @@ gabaritos:
 	$(PYTHON) exercicios/verifica_gabaritos.py
 
 # =============================================================================
-# Limpeza
+# Cleanup / Limpeza
 # =============================================================================
 clean:
 	$(MAKE) -C riscv_harvard clean      2>/dev/null || true

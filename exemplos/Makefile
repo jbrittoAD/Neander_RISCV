@@ -1,15 +1,17 @@
 # =============================================================================
+# Makefile — RISC-V RV32I Example Programs
 # Makefile — Programas de Exemplo RISC-V RV32I
 # =============================================================================
 #
+# Compiles all example programs to .hex and verifies them with the simulator.
 # Compila todos os programas de exemplo para .hex e verifica com o simulador.
 #
-# Uso:
-#   make all        — compila e verifica todos
-#   make hex        — compila para .hex (sem verificar)
-#   make verify     — verifica resultados com o simulador
-#   make clean      — remove arquivos gerados
-#   make help       — mostra esta ajuda
+# Usage / Uso:
+#   make all        — compile and verify all / compila e verifica todos
+#   make hex        — compile to .hex only (without verifying) / compila para .hex (sem verificar)
+#   make verify     — verify results with the simulator / verifica resultados com o simulador
+#   make clean      — remove generated files / remove arquivos gerados
+#   make help       — show this help / mostra esta ajuda
 
 AS       := riscv64-unknown-elf-as
 OBJCOPY  := riscv64-unknown-elf-objcopy
@@ -20,7 +22,7 @@ AS_FLAGS := -march=rv32i -mabi=ilp32
 
 SIM      := $(CURDIR)/../simulator/riscv_sim.py
 
-# Programas de exemplo
+# Example programs / Programas de exemplo
 PROGS := fibonacci factorial max_array sum_array bubblesort counter abs_value gcd power strlen binary_search selection_sort
 
 HEX_FILES := $(addsuffix .hex, $(PROGS))
@@ -36,6 +38,7 @@ all: hex verify
 	@echo "============================================"
 
 # =============================================================================
+# Compilation: .s -> .o -> .bin -> .hex + .dis
 # Compilação: .s → .o → .bin → .hex + .dis
 # =============================================================================
 hex: $(HEX_FILES)
@@ -50,6 +53,7 @@ hex: $(HEX_FILES)
 	@echo "  → $*.hex gerado"
 
 # =============================================================================
+# Verification: run each program and display its result
 # Verificação: roda cada programa e mostra resultado
 # =============================================================================
 verify: hex
@@ -62,7 +66,7 @@ verify: hex
 	done
 
 # =============================================================================
-# Limpeza
+# Cleanup / Limpeza
 # =============================================================================
 clean:
 	rm -f *.o *.bin *.hex *.dis

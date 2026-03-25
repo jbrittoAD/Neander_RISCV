@@ -1,5 +1,7 @@
 // =============================================================================
+// Register File Testbench — Verilator C++
 // Testbench do Banco de Registradores — Verilator C++
+// Tests: write/read, x0 always zero, dual-port read
 // Testa: escrita/leitura, x0 sempre zero, multi-porta
 // =============================================================================
 #include <verilated.h>
@@ -30,7 +32,7 @@ int main(int argc, char** argv) {
     ctx->commandArgs(argc, argv);
     Vregister_file* dut = new Vregister_file{ctx};
 
-    // Inicializa entradas
+    // Initialize inputs / Inicializa entradas
     dut->clk = 0;
     dut->we  = 0;
     dut->rs1 = 0;
@@ -41,7 +43,7 @@ int main(int argc, char** argv) {
     printf("=== Teste do Banco de Registradores ===\n\n");
 
     // ------------------------------------------------------------------
-    // Escreve em x1 = 42
+    // Write x1 = 42 / Escreve em x1 = 42
     // ------------------------------------------------------------------
     printf("[ Escrita e Leitura ]\n");
     dut->we  = 1;
@@ -50,12 +52,12 @@ int main(int argc, char** argv) {
     tick(dut, ctx);
 
     dut->we  = 0;
-    dut->rs1 = 1;       // lê x1
+    dut->rs1 = 1;       // read x1 / lê x1
     dut->eval();
     check_val(dut->rd1, 42, "x1 = 42 apos escrita");
 
     // ------------------------------------------------------------------
-    // Escreve em x5 = 0xDEADBEEF
+    // Write x5 = 0xDEADBEEF / Escreve em x5 = 0xDEADBEEF
     // ------------------------------------------------------------------
     dut->we  = 1;
     dut->rd  = 5;
@@ -68,11 +70,12 @@ int main(int argc, char** argv) {
     check_val(dut->rd1, 0xDEADBEEF, "x5 = 0xDEADBEEF");
 
     // ------------------------------------------------------------------
+    // x0 is never modified (hardwired zero)
     // x0 nunca é alterado (hardwired zero)
     // ------------------------------------------------------------------
     printf("[ x0 hardwired zero ]\n");
     dut->we  = 1;
-    dut->rd  = 0;       // tenta escrever em x0
+    dut->rd  = 0;       // attempt to write to x0 / tenta escrever em x0
     dut->wd  = 0xCAFEBABE;
     tick(dut, ctx);
 
@@ -82,7 +85,7 @@ int main(int argc, char** argv) {
     check_val(dut->rd1, 0, "x0 permanece 0 apos tentativa de escrita");
 
     // ------------------------------------------------------------------
-    // Leitura de dois registradores simultaneamente
+    // Simultaneous dual-port read / Leitura de dois registradores simultaneamente
     // ------------------------------------------------------------------
     printf("[ Leitura dupla ]\n");
     dut->we  = 1;
@@ -98,6 +101,7 @@ int main(int argc, char** argv) {
     check_val(dut->rd2, 200, "x11 = 200");
 
     // ------------------------------------------------------------------
+    // Previously written registers must be unaffected
     // Registradores anteriores não foram afetados
     // ------------------------------------------------------------------
     printf("[ Persistência de dados ]\n");
@@ -108,6 +112,7 @@ int main(int argc, char** argv) {
     check_val(dut->rd2, 0xDEADBEEF, "x5 ainda = 0xDEADBEEF");
 
     // ------------------------------------------------------------------
+    // Write to all 31 registers (x1–x31)
     // Escrita em todos os 31 registradores (x1-x31)
     // ------------------------------------------------------------------
     printf("[ Escrita em x1-x31 ]\n");
@@ -134,7 +139,7 @@ int main(int argc, char** argv) {
     }
 
     // ------------------------------------------------------------------
-    // Resultado
+    // Final results / Resultado
     // ------------------------------------------------------------------
     printf("\n===================================\n");
     printf("Resultados: %d aprovados, %d reprovados\n", passed, failed);

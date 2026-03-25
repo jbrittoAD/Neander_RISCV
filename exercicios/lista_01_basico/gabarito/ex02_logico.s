@@ -1,5 +1,6 @@
 # =============================================================================
 # Gabarito — Lista 1, Exercício 2: Operações lógicas
+# Answer key — List 1, Exercise 2: Logical operations
 # =============================================================================
 # x1 = 202 = 0b11001010
 # x2 = 182 = 0b10110110
@@ -17,13 +18,14 @@ _start:
     and   x3, x1, x2         # x3 = x1 AND x2 = 130
     or    x4, x1, x2         # x4 = x1 OR  x2 = 254
     xor   x5, x1, x2         # x5 = x1 XOR x2 = 124
-    xori  x6, x1, -1         # x6 = NOT(x1) — XOR com todos 1s = -203
+    xori  x6, x1, -1         # x6 = NOT(x1) — XOR with all 1s = -203 / XOR com todos 1s = -203
 
-    # Verificação:
+    # Verification / Verificação:
     # 11001010 AND 10110110 = 10000010 = 130  ✓
     # 11001010 OR  10110110 = 11111110 = 254  ✓
     # 11001010 XOR 10110110 = 01111100 = 124  ✓
-    # NOT 11001010 = 00110101 (nos 8 bits)...
+    # NOT 11001010 = 00110101 (in 8 bits / nos 8 bits)...
+    # but in 32 bits: NOT 0x000000CA = 0xFFFFFF35 = -203  ✓
     # mas em 32 bits: NOT 0x000000CA = 0xFFFFFF35 = -203  ✓
 
 fim:

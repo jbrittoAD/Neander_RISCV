@@ -1,9 +1,14 @@
 // =============================================================================
+// RISC-V RV32I Processor — Harvard Architecture (Single-Cycle)
 // Processador RISC-V RV32I — Arquitetura Harvard (Single-Cycle)
+// Top-level module: interconnects all components
 // Módulo top-level: interliga todos os componentes
 //
+// Harvard Architecture:
 // Arquitetura Harvard:
+//   - Instruction memory is separate from data memory
 //   - Memória de instruções separada da memória de dados
+//   - Instruction fetch and data access occur in parallel in the same cycle
 //   - Busca de instrução e acesso a dados ocorrem em paralelo no mesmo ciclo
 // =============================================================================
 `include "alu.sv"
@@ -19,39 +24,40 @@ module riscv_top #(
     parameter DMEM_DEPTH = 1024
 ) (
     input  logic        clk,
-    input  logic        rst_n,         // Reset ativo baixo
+    input  logic        rst_n,         // Active-low reset / Reset ativo baixo
 
     // ------------------------------------------------------------------
+    // Debug ports (accessible from the testbench)
     // Portas de debug (acessíveis no testbench)
     // ------------------------------------------------------------------
-    output logic [31:0] dbg_pc,        // Valor atual do PC
-    output logic [31:0] dbg_instr,     // Instrução em execução
-    output logic [31:0] dbg_alu_result,// Resultado da ALU
-    output logic [31:0] dbg_reg_wd,    // Dado escrito no registrador
-    output logic        dbg_reg_we,    // Write-enable do banco
+    output logic [31:0] dbg_pc,        // Current PC value / Valor atual do PC
+    output logic [31:0] dbg_instr,     // Instruction being executed / Instrução em execução
+    output logic [31:0] dbg_alu_result,// ALU result / Resultado da ALU
+    output logic [31:0] dbg_reg_wd,    // Data written to register / Dado escrito no registrador
+    output logic        dbg_reg_we,    // Register file write-enable / Write-enable do banco
 
-    input  logic [4:0]  dbg_reg_sel,   // Seleciona registrador a inspecionar
-    output logic [31:0] dbg_reg_val    // Valor do registrador selecionado
+    input  logic [4:0]  dbg_reg_sel,   // Selects register to inspect / Seleciona registrador a inspecionar
+    output logic [31:0] dbg_reg_val    // Value of the selected register / Valor do registrador selecionado
 );
 
     // =========================================================================
-    // Sinais internos
+    // Internal signals / Sinais internos
     // =========================================================================
 
     // PC
     logic [31:0] pc, pc_next, pc_plus4;
 
-    // Instrução decodificada
+    // Decoded instruction / Instrução decodificada
     logic [31:0] instr;
     logic [6:0]  opcode;
     logic [4:0]  rs1_addr, rs2_addr, rd_addr;
     logic [2:0]  funct3;
     logic [6:0]  funct7;
 
-    // Imediatos
+    // Immediates / Imediatos
     logic [31:0] imm_i, imm_s, imm_b, imm_u, imm_j;
 
-    // Banco de registradores
+    // Register file / Banco de registradores
     logic [31:0] rs1_data, rs2_data;
     logic [31:0] reg_wd;
 
@@ -61,10 +67,10 @@ module riscv_top #(
     logic        alu_zero;
     logic [3:0]  alu_sel;
 
-    // Memória de dados
+    // Data memory / Memória de dados
     logic [31:0] mem_rd;
 
-    // Sinais de controle
+    // Control signals / Sinais de controle
     logic        reg_write;
     logic        alu_src_a, alu_src_b;
     logic        mem_read, mem_write;
@@ -73,12 +79,12 @@ module riscv_top #(
     logic [1:0]  alu_op;
     logic        branch_inv;
 
-    // Lógica de branch
+    // Branch logic / Lógica de branch
     logic        take_branch;
     logic [31:0] branch_target, jalr_target;
 
     // =========================================================================
-    // PC — Registrador de Programa
+    // PC — Program Counter Register / Registrador de Programa
     // =========================================================================
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n)
@@ -90,18 +96,21 @@ module riscv_top #(
     assign pc_plus4 = pc + 32'd4;
 
     // =========================================================================
-    // Lógica de próximo PC
+    // Next PC logic / Lógica de próximo PC
     // =========================================================================
     logic [31:0] jalr_sum;
     assign branch_target = pc + imm_b;
+    // JALR: rs1 + imm_i, bit 0 forced to zero (RISC-V spec)
     // JALR: rs1 + imm_i, bit 0 forçado a zero (RISC-V spec)
     assign jalr_sum    = rs1_data + imm_i;
     assign jalr_target = {jalr_sum[31:1], 1'b0};
 
+    // Decide whether the branch is taken based on the ALU operation and branch_inv
     // Decide se o branch é tomado com base na operação ALU e branch_inv
     always_comb begin
         if (branch) begin
             // alu_sel = SUB (0001): BEQ/BNE
+            // alu_sel = SLT (1000) or SLTU (1001): BLT/BGE/BLTU/BGEU
             // alu_sel = SLT (1000) ou SLTU (1001): BLT/BGE/BLTU/BGEU
             if (alu_sel == 4'b0001) // SUB
                 take_branch = branch_inv ? ~alu_zero : alu_zero;
@@ -111,7 +120,7 @@ module riscv_top #(
             take_branch = 1'b0;
     end
 
-    // Seletor do próximo PC
+    // Next PC selector / Seletor do próximo PC
     always_comb begin
         if (jump)
             pc_next = pc + imm_j;
@@ -124,7 +133,7 @@ module riscv_top #(
     end
 
     // =========================================================================
-    // Decodificação da instrução
+    // Instruction decoding / Decodificação da instrução
     // =========================================================================
     assign opcode   = instr[6:0];
     assign funct3   = instr[14:12];
@@ -134,6 +143,7 @@ module riscv_top #(
     assign rs2_addr = instr[24:20];
 
     // =========================================================================
+    // Instruction Memory (Harvard: separate ROM)
     // Memória de Instruções (Harvard: ROM separada)
     // =========================================================================
     instr_mem #(
@@ -144,7 +154,7 @@ module riscv_top #(
     );
 
     // =========================================================================
-    // Gerador de Imediatos
+    // Immediate Generator / Gerador de Imediatos
     // =========================================================================
     imm_gen u_immgen (
         .instr (instr),
@@ -156,7 +166,7 @@ module riscv_top #(
     );
 
     // =========================================================================
-    // Unidade de Controle Principal
+    // Main Control Unit / Unidade de Controle Principal
     // =========================================================================
     control_unit u_ctrl (
         .opcode    (opcode),
@@ -173,20 +183,21 @@ module riscv_top #(
     );
 
     // =========================================================================
+    // Selector for data to write to the register file
     // Seletor do dado a escrever no banco de registradores
     // =========================================================================
     always_comb begin
         case (mem_to_reg)
-            2'b00: reg_wd = alu_result;  // Resultado da ALU (R, I, AUIPC)
-            2'b01: reg_wd = mem_rd;       // Dado da memória (loads)
-            2'b10: reg_wd = pc_plus4;     // Endereço de retorno (JAL, JALR)
-            2'b11: reg_wd = imm_u;        // Imediato upper (LUI)
+            2'b00: reg_wd = alu_result;  // ALU result (R, I, AUIPC) / Resultado da ALU (R, I, AUIPC)
+            2'b01: reg_wd = mem_rd;       // Memory data (loads) / Dado da memória (loads)
+            2'b10: reg_wd = pc_plus4;     // Return address (JAL, JALR) / Endereço de retorno (JAL, JALR)
+            2'b11: reg_wd = imm_u;        // Upper immediate (LUI) / Imediato upper (LUI)
             default: reg_wd = alu_result;
         endcase
     end
 
     // =========================================================================
-    // Banco de Registradores
+    // Register File / Banco de Registradores
     // =========================================================================
     register_file u_regfile (
         .clk        (clk),
@@ -202,7 +213,7 @@ module riscv_top #(
     );
 
     // =========================================================================
-    // Unidade de Controle da ALU
+    // ALU Control Unit / Unidade de Controle da ALU
     // =========================================================================
     alu_control u_alu_ctrl (
         .alu_op    (alu_op),
@@ -213,6 +224,7 @@ module riscv_top #(
     );
 
     // =========================================================================
+    // Immediate selector according to instruction type
     // Seletor do imediato conforme tipo da instrução
     // =========================================================================
     always_comb begin
@@ -227,10 +239,10 @@ module riscv_top #(
     end
 
     // =========================================================================
-    // Multiplexadores de entrada da ALU
+    // ALU input multiplexers / Multiplexadores de entrada da ALU
     // =========================================================================
-    assign alu_a = alu_src_a ? pc       : rs1_data;  // A: rs1 ou PC
-    assign alu_b = alu_src_b ? imm_sel  : rs2_data;  // B: rs2 ou imediato
+    assign alu_a = alu_src_a ? pc       : rs1_data;  // A: rs1 or PC / A: rs1 ou PC
+    assign alu_b = alu_src_b ? imm_sel  : rs2_data;  // B: rs2 or immediate / B: rs2 ou imediato
 
     // =========================================================================
     // ALU
@@ -244,6 +256,7 @@ module riscv_top #(
     );
 
     // =========================================================================
+    // Data Memory (Harvard: separate RAM)
     // Memória de Dados (Harvard: RAM separada)
     // =========================================================================
     data_mem #(
@@ -259,7 +272,7 @@ module riscv_top #(
     );
 
     // =========================================================================
-    // Portas de debug
+    // Debug ports / Portas de debug
     // =========================================================================
     assign dbg_pc         = pc;
     assign dbg_instr      = instr;

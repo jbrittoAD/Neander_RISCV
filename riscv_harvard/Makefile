@@ -1,33 +1,34 @@
 # =============================================================================
+# Makefile — RISC-V Harvard Processor (Verilator)
 # Makefile — Processador RISC-V Harvard (Verilator)
 # =============================================================================
 
-# Ferramentas
+# Tools / Ferramentas
 VERILATOR   := verilator
 AS          := riscv64-unknown-elf-as
 OBJCOPY     := riscv64-unknown-elf-objcopy
 OBJDUMP     := riscv64-unknown-elf-objdump
 PYTHON      := python3
 
-# Diretórios
+# Directories / Diretórios
 SRC_DIR     := src
 TB_DIR      := tb
 PROG_DIR    := programs
 SIM_DIR     := sim
 OBJ_DIR     := obj_dir
 
-# Flags base do Verilator
+# Base Verilator flags / Flags base do Verilator
 VFLAGS_BASE := --cc --sv --exe --build \
                --Mdir $(OBJ_DIR) \
                -I$(SRC_DIR) \
                -Wall \
                -Wno-UNUSEDSIGNAL
 
-# Flags do assembler RISC-V
+# RISC-V assembler flags / Flags do assembler RISC-V
 AS_FLAGS    := -march=rv32i -mabi=ilp32
 
 # =============================================================================
-# Alvos principais
+# Main targets / Alvos principais
 # =============================================================================
 .PHONY: all programs alu regfile arith loadstore branch jump wave clean help
 
@@ -38,7 +39,7 @@ all: programs alu regfile arith loadstore branch jump
 	@echo "============================================"
 
 # =============================================================================
-# Monta programas de teste
+# Assemble test programs / Monta programas de teste
 # =============================================================================
 programs: $(PROG_DIR)/test_arith.hex \
           $(PROG_DIR)/test_load_store.hex \
@@ -71,7 +72,7 @@ $(PROG_DIR)/test_jump.hex: $(PROG_DIR)/test_jump.s
 	$(PYTHON) scripts/bin2hex.py $(PROG_DIR)/test_jump.bin $@
 
 # =============================================================================
-# Teste da ALU (unitário)
+# ALU unit test / Teste da ALU (unitário)
 # =============================================================================
 alu: $(OBJ_DIR)/Valu
 	@echo ""
@@ -87,7 +88,7 @@ $(OBJ_DIR)/Valu: $(SRC_DIR)/alu.sv $(TB_DIR)/tb_alu.cpp
 	    -o Valu
 
 # =============================================================================
-# Teste do Banco de Registradores (unitário)
+# Register file unit test / Teste do Banco de Registradores (unitário)
 # =============================================================================
 regfile: $(OBJ_DIR)/Vregfile
 	@echo ""
@@ -103,11 +104,13 @@ $(OBJ_DIR)/Vregfile: $(SRC_DIR)/register_file.sv $(TB_DIR)/tb_regfile.cpp
 	    -o Vregfile
 
 # =============================================================================
+# Single compilation of the full processor simulator
+# (one binary per testbench — the program is selected by copying the hex to sim/)
 # Compilação única do simulador do processador completo
 # (um único binário — o programa é selecionado pelo hex copiado para sim/)
 # =============================================================================
 
-# Binários de simulação por testbench
+# Simulation binaries per testbench / Binários de simulação por testbench
 $(OBJ_DIR)/Varith: $(SRC_DIR)/riscv_top.sv $(TB_DIR)/tb_arith.cpp
 	@mkdir -p $(OBJ_DIR)
 	$(VERILATOR) $(VFLAGS_BASE) --top-module riscv_top \
@@ -137,6 +140,8 @@ $(OBJ_DIR)/Vjump: $(SRC_DIR)/riscv_top.sv $(TB_DIR)/tb_jump.cpp
 	    -o Vjump
 
 # =============================================================================
+# Run integrated tests
+# (copies the correct hex to sim/program.hex and executes from there)
 # Execução dos testes integrados
 # (copia o hex correto para sim/program.hex e executa de lá)
 # =============================================================================
@@ -173,6 +178,7 @@ jump: $(OBJ_DIR)/Vjump $(PROG_DIR)/test_jump.hex
 	@echo ""
 
 # =============================================================================
+# VCD Waveform — generates sim/waves.vcd for viewing in GTKWave
 # Waveform VCD — gera sim/waves.vcd para visualizar no GTKWave
 # =============================================================================
 wave: $(OBJ_DIR)/Vwave $(PROG_DIR)/test_arith.hex
@@ -192,7 +198,7 @@ $(OBJ_DIR)/Vwave: $(SRC_DIR)/riscv_top.sv $(TB_DIR)/tb_wave.cpp
 	    -o Vwave
 
 # =============================================================================
-# Limpeza
+# Cleanup / Limpeza
 # =============================================================================
 clean:
 	rm -rf $(OBJ_DIR) $(SIM_DIR)
