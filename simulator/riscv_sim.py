@@ -38,6 +38,7 @@ import os
 import struct
 import argparse
 
+# readline may not be available in all environments
 # readline pode não estar disponível em todos os ambientes
 try:
     import readline
@@ -46,7 +47,7 @@ except ImportError:
     _READLINE = False
 
 # =============================================================================
-# Cores ANSI para terminal
+# ANSI terminal colours / Cores ANSI para terminal
 # =============================================================================
 
 _COLORS = {
@@ -61,7 +62,7 @@ _COLORS = {
 }
 
 def _c(text: str, *keys, enabled: bool = True) -> str:
-    """Aplica cores ANSI ao texto."""
+    """Apply ANSI colour codes to text. / Aplica cores ANSI ao texto."""
     if not enabled:
         return text
     prefix = ''.join(_COLORS.get(k, '') for k in keys)
@@ -69,7 +70,7 @@ def _c(text: str, *keys, enabled: bool = True) -> str:
 
 
 # =============================================================================
-# Nomes ABI dos registradores (x0..x31)
+# ABI register names (x0..x31) / Nomes ABI dos registradores (x0..x31)
 # =============================================================================
 
 REGS_ABI = [
@@ -81,34 +82,39 @@ REGS_ABI = [
 
 
 # =============================================================================
-# Funções auxiliares de aritmética de 32 bits
+# 32-bit arithmetic helpers / Funções auxiliares de aritmética de 32 bits
 # =============================================================================
 
 def to_u32(x: int) -> int:
-    """Trunca inteiro para 32 bits sem sinal."""
+    """Truncate integer to 32-bit unsigned. / Trunca inteiro para 32 bits sem sinal."""
     return x & 0xFFFF_FFFF
 
 
 def to_s32(x: int) -> int:
-    """Interpreta inteiro de 32 bits como com sinal (complemento de 2)."""
+    """Interpret 32-bit integer as signed (two's complement).
+    Interpreta inteiro de 32 bits como com sinal (complemento de 2)."""
     x = x & 0xFFFF_FFFF
     return x - 0x1_0000_0000 if x >= 0x8000_0000 else x
 
 
 def sign_extend(value: int, bits: int) -> int:
-    """Extensão de sinal: interpreta 'value' como inteiro de 'bits' bits com sinal."""
+    """Sign-extend 'value' from 'bits' bits to Python int.
+    Extensão de sinal: interpreta 'value' como inteiro de 'bits' bits com sinal."""
     sign_bit = 1 << (bits - 1)
     return (value & (sign_bit - 1)) - (value & sign_bit)
 
 
 # =============================================================================
-# Classe Memory — memória byte-endereçável
+# Memory class — byte-addressable memory / Classe Memory — memória byte-endereçável
 # =============================================================================
 
 class Memory:
     """
+    Fixed-size byte-addressable memory.
     Memória byte-endereçável de tamanho fixo.
 
+    Internally stores data in a bytearray. Supports 1-, 2- and 4-byte
+    reads/writes in little-endian format (RISC-V convention).
     Internamente armazena os dados em um bytearray. Suporta leitura e escrita
     de 1, 2 e 4 bytes em formato little-endian (convenção RISC-V).
     """
@@ -116,22 +122,26 @@ class Memory:
     def __init__(self, size: int = 4096):
         """
         Args:
-            size: Tamanho em bytes (padrão 4096 = 4 KB).
+            size: Size in bytes (default 4096 = 4 KB).
+                  Tamanho em bytes (padrão 4096 = 4 KB).
         """
         self.size = size
         self.data = bytearray(size)
 
     def reset(self):
-        """Limpa toda a memória (preenche com zeros)."""
+        """Clear all memory (fill with zeros). / Limpa toda a memória (preenche com zeros)."""
         self.data = bytearray(self.size)
 
     def load_hex(self, path: str):
         """
+        Load a .hex file in SystemVerilog $readmemh format.
         Carrega arquivo .hex no formato $readmemh do SystemVerilog.
 
+        Expected format: one 32-bit word per line, hexadecimal, no '0x' prefix.
         Formato esperado: uma palavra de 32 bits por linha, em hexadecimal,
         sem prefixo '0x'. Exemplo: '00500093'
 
+        Word at line i is stored at byte address i*4, little-endian.
         A palavra na linha i é armazenada no endereço de byte i*4,
         em formato little-endian.
         """
@@ -153,56 +163,60 @@ class Memory:
                     )
                 struct.pack_into('<I', self.data, addr, word)
 
-    # ── Leituras ──────────────────────────────────────────────────────────────
+    # ── Reads / Leituras ──────────────────────────────────────────────────────
 
     def read8(self, addr: int) -> int:
-        """Lê 1 byte sem sinal no endereço 'addr'."""
+        """Read 1 unsigned byte at addr. / Lê 1 byte sem sinal no endereço 'addr'."""
         addr = to_u32(addr)
         if addr >= self.size:
             raise MemoryError(f"Leitura fora dos limites: 0x{addr:08x} (memória de {self.size} bytes)")
         return self.data[addr]
 
     def read16(self, addr: int) -> int:
-        """Lê 2 bytes sem sinal (little-endian) no endereço 'addr'."""
+        """Read 2 unsigned bytes (little-endian) at addr.
+        Lê 2 bytes sem sinal (little-endian) no endereço 'addr'."""
         addr = to_u32(addr)
         if addr + 2 > self.size:
             raise MemoryError(f"Leitura fora dos limites: 0x{addr:08x}")
         return struct.unpack_from('<H', self.data, addr)[0]
 
     def read32(self, addr: int) -> int:
-        """Lê 4 bytes sem sinal (little-endian) no endereço 'addr'."""
+        """Read 4 unsigned bytes (little-endian) at addr.
+        Lê 4 bytes sem sinal (little-endian) no endereço 'addr'."""
         addr = to_u32(addr)
         if addr + 4 > self.size:
             raise MemoryError(f"Leitura fora dos limites: 0x{addr:08x}")
         return struct.unpack_from('<I', self.data, addr)[0]
 
-    # ── Escritas ──────────────────────────────────────────────────────────────
+    # ── Writes / Escritas ─────────────────────────────────────────────────────
 
     def write8(self, addr: int, value: int):
-        """Escreve 1 byte no endereço 'addr'."""
+        """Write 1 byte at addr. / Escreve 1 byte no endereço 'addr'."""
         addr = to_u32(addr)
         if addr >= self.size:
             raise MemoryError(f"Escrita fora dos limites: 0x{addr:08x}")
         self.data[addr] = value & 0xFF
 
     def write16(self, addr: int, value: int):
-        """Escreve 2 bytes (little-endian) no endereço 'addr'."""
+        """Write 2 bytes (little-endian) at addr.
+        Escreve 2 bytes (little-endian) no endereço 'addr'."""
         addr = to_u32(addr)
         if addr + 2 > self.size:
             raise MemoryError(f"Escrita fora dos limites: 0x{addr:08x}")
         struct.pack_into('<H', self.data, addr, value & 0xFFFF)
 
     def write32(self, addr: int, value: int):
-        """Escreve 4 bytes (little-endian) no endereço 'addr'."""
+        """Write 4 bytes (little-endian) at addr.
+        Escreve 4 bytes (little-endian) no endereço 'addr'."""
         addr = to_u32(addr)
         if addr + 4 > self.size:
             raise MemoryError(f"Escrita fora dos limites: 0x{addr:08x}")
         struct.pack_into('<I', self.data, addr, value & 0xFFFF_FFFF)
 
     def dump(self, start: int, count: int = 8):
-        """Retorna lista de (addr, word) para exibição."""
+        """Return list of (addr, word) for display. / Retorna lista de (addr, word) para exibição."""
         result = []
-        start = to_u32(start) & ~3  # alinha em word
+        start = to_u32(start) & ~3  # word-align / alinha em word
         for i in range(count):
             addr = start + i * 4
             if addr + 4 > self.size:
@@ -212,36 +226,45 @@ class Memory:
 
 
 # =============================================================================
+# CPU class — single-cycle RISC-V RV32I
 # Classe CPU — processador RISC-V RV32I single-cycle
 # =============================================================================
 
 class CPU:
     """
+    Single-cycle RISC-V RV32I processor.
     Processador RISC-V RV32I single-cycle.
 
+    Implements all 37 base instructions: R-type, I-type (arith, load, jalr),
+    S-type, B-type, U-type (lui, auipc) and J-type (jal).
     Implementa as 37 instruções base: R-type, I-type (arith, load, jalr),
     S-type, B-type, U-type (lui, auipc) e J-type (jal).
 
+    Memory modes:
+    - Harvard (default): imem separate from dmem (like riscv_harvard/)
+    - Von Neumann (--vn): unified memory (like riscv_von_neumann/)
     Modos de memória:
     - Harvard (padrão): imem separada de dmem (como riscv_harvard/)
     - Von Neumann (--vn): memória unificada (como riscv_von_neumann/)
     """
 
+    # Instruction limit to avoid infinite loops in run mode
     # Limite de instruções para evitar loops infinitos no modo run
     HALT_LIMIT = 10_000_000
 
-    # Tamanho padrão das memórias
-    IMEM_SIZE = 4096   # 4 KB instrução
-    DMEM_SIZE = 4096   # 4 KB dados (Harvard)
-    MEM_SIZE  = 65536  # 64 KB unificado (Von Neumann)
+    # Default memory sizes / Tamanho padrão das memórias
+    IMEM_SIZE = 4096   # 4 KB instruction / 4 KB instrução
+    DMEM_SIZE = 4096   # 4 KB data Harvard / 4 KB dados (Harvard)
+    MEM_SIZE  = 65536  # 64 KB unified Von Neumann / 64 KB unificado (Von Neumann)
 
     def __init__(self, harvard: bool = True):
         """
         Args:
-            harvard: True para modo Harvard (default), False para Von Neumann.
+            harvard: True for Harvard mode (default), False for Von Neumann.
+                     True para modo Harvard (default), False para Von Neumann.
         """
         self.harvard = harvard
-        self.regs = [0] * 32   # x0..x31, x0 sempre 0
+        self.regs = [0] * 32   # x0..x31, x0 always 0 / x0..x31, x0 sempre 0
         self.pc = 0
         self.cycle = 0
         self._halted = False
@@ -256,10 +279,10 @@ class CPU:
             self.dmem = None
             self.mem  = Memory(self.MEM_SIZE)
 
-    # ── Carga de programa ─────────────────────────────────────────────────────
+    # ── Program loading / Carga de programa ───────────────────────────────────
 
     def load(self, path: str):
-        """Carrega arquivo .hex na memória de instruções."""
+        """Load .hex file into instruction memory. / Carrega arquivo .hex na memória de instruções."""
         self._hex_path = os.path.abspath(path)
         self._halted = False
         if self.harvard:
@@ -269,7 +292,10 @@ class CPU:
 
     def reset(self):
         """
+        Reset CPU: zero registers, PC and cycle counter.
         Reinicia CPU: zera registradores, PC e ciclos.
+
+        Reloads the program if one was previously loaded.
         Recarrega o programa se havia um carregado.
         """
         self.regs = [0] * 32
@@ -286,10 +312,11 @@ class CPU:
             if self._hex_path:
                 self.mem.load_hex(self._hex_path)
 
+    # ── Memory access — dispatches to imem/dmem or unified mem
     # ── Acesso a memória (despacha para imem/dmem ou mem unificada) ───────────
 
     def _ifetch(self) -> int:
-        """Busca instrução no PC atual (instruction fetch)."""
+        """Fetch instruction at current PC. / Busca instrução no PC atual (instruction fetch)."""
         if self.harvard:
             return self.imem.read32(self.pc)
         else:
@@ -302,22 +329,25 @@ class CPU:
     def _dwrite16(self, addr: int, v: int): (self.dmem if self.harvard else self.mem).write16(addr, v)
     def _dwrite32(self, addr: int, v: int): (self.dmem if self.harvard else self.mem).write32(addr, v)
 
-    # ── Decodificação de imediatos ────────────────────────────────────────────
+    # ── Immediate decoding / Decodificação de imediatos ───────────────────────
 
     @staticmethod
     def _imm_i(instr: int) -> int:
-        """Imediato I-type: bits [31:20], com extensão de sinal de 12 bits."""
+        """I-type immediate: bits [31:20], sign-extended from 12 bits.
+        Imediato I-type: bits [31:20], com extensão de sinal de 12 bits."""
         return sign_extend((instr >> 20) & 0xFFF, 12)
 
     @staticmethod
     def _imm_s(instr: int) -> int:
-        """Imediato S-type: bits [31:25] e [11:7], extensão de 12 bits."""
+        """S-type immediate: bits [31:25] and [11:7], sign-extended from 12 bits.
+        Imediato S-type: bits [31:25] e [11:7], extensão de 12 bits."""
         imm = ((instr >> 25) << 5) | ((instr >> 7) & 0x1F)
         return sign_extend(imm, 12)
 
     @staticmethod
     def _imm_b(instr: int) -> int:
-        """Imediato B-type: bits [31,7,30:25,11:8], extensão de 13 bits."""
+        """B-type immediate: bits [31,7,30:25,11:8], sign-extended from 13 bits.
+        Imediato B-type: bits [31,7,30:25,11:8], extensão de 13 bits."""
         b12   = (instr >> 31) & 1
         b11   = (instr >> 7) & 1
         b10_5 = (instr >> 25) & 0x3F
@@ -327,12 +357,14 @@ class CPU:
 
     @staticmethod
     def _imm_u(instr: int) -> int:
-        """Imediato U-type: bits [31:12] nos 20 bits superiores (já shiftado)."""
+        """U-type immediate: bits [31:12] in the upper 20 bits (already shifted).
+        Imediato U-type: bits [31:12] nos 20 bits superiores (já shiftado)."""
         return instr & 0xFFFFF000
 
     @staticmethod
     def _imm_j(instr: int) -> int:
-        """Imediato J-type: bits [31,19:12,20,30:21], extensão de 21 bits."""
+        """J-type immediate: bits [31,19:12,20,30:21], sign-extended from 21 bits.
+        Imediato J-type: bits [31,19:12,20,30:21], extensão de 21 bits."""
         b20    = (instr >> 31) & 1
         b10_1  = (instr >> 21) & 0x3FF
         b11    = (instr >> 20) & 1
@@ -340,15 +372,17 @@ class CPU:
         imm = (b20 << 20) | (b19_12 << 12) | (b11 << 11) | (b10_1 << 1)
         return sign_extend(imm, 21)
 
-    # ── Desmontagem (disassembly) para exibição ───────────────────────────────
+    # ── Disassembly for display / Desmontagem (disassembly) para exibição ─────
 
     def disasm(self, instr: int, pc: int) -> str:
         """
+        Return a human-readable string for the instruction (e.g. 'addi x1, x0, 5').
         Retorna string legível da instrução (ex: 'addi x1, x0, 5').
 
         Args:
-            instr: Palavra de 32 bits da instrução.
-            pc:    Endereço do PC onde a instrução está (usado para targets de branch/jump).
+            instr: 32-bit instruction word. / Palavra de 32 bits da instrução.
+            pc:    Address of the PC (used for branch/jump targets).
+                   Endereço do PC onde a instrução está (usado para targets de branch/jump).
         """
         op     = instr & 0x7F
         rd     = (instr >> 7) & 0x1F
@@ -356,7 +390,7 @@ class CPU:
         rs1    = (instr >> 15) & 0x1F
         rs2    = (instr >> 20) & 0x1F
         f7     = (instr >> 25) & 0x7F
-        shamt  = rs2  # para shifts imediatos
+        shamt  = rs2  # for immediate shifts / para shifts imediatos
 
         def rn(r): return f"x{r}"
 
@@ -424,22 +458,23 @@ class CPU:
 
         return f"??? (0x{instr:08x})"
 
-    # ── Execução de uma instrução ─────────────────────────────────────────────
+    # ── Single instruction execution / Execução de uma instrução ─────────────
 
     def step(self) -> dict:
         """
+        Execute one instruction and return an execution trace dictionary.
         Executa uma instrução e retorna um dicionário com o trace da execução.
 
-        Retorna:
+        Returns / Retorna:
             {
-              'pc':          int   — PC antes da execução,
-              'instr':       int   — palavra de 32 bits da instrução,
-              'disasm':      str   — desmontagem legível,
-              'reg_writes':  list  — [(rd, valor_antes, valor_depois), ...],
-              'mem_writes':  list  — [(addr, nbytes, valor), ...],
-              'branch_taken': bool — (apenas para branches),
-              'halted':      bool  — True se halt detectado,
-              'error':       str   — mensagem de erro, ou None,
+              'pc':          int   — PC before execution / PC antes da execução,
+              'instr':       int   — 32-bit instruction word / palavra de 32 bits da instrução,
+              'disasm':      str   — human-readable disassembly / desmontagem legível,
+              'reg_writes':  list  — [(rd, old_val, new_val), ...],
+              'mem_writes':  list  — [(addr, nbytes, value), ...],
+              'branch_taken': bool — (branches only / apenas para branches),
+              'halted':      bool  — True if halt detected / True se halt detectado,
+              'error':       str   — error message or None / mensagem de erro, ou None,
             }
         """
         result = {
@@ -472,13 +507,14 @@ class CPU:
         rs1   = (instr >> 15) & 0x1F
         rs2   = (instr >> 20) & 0x1F
         f7    = (instr >> 25) & 0x7F
-        shamt = rs2  # para shifts imediatos
+        shamt = rs2  # for immediate shifts / para shifts imediatos
 
         pc_cur = self.pc
         new_pc = pc_cur + 4
 
         def reg_write(dest, val):
-            """Escreve em registrador, ignora x0, registra a mudança."""
+            """Write to register, ignoring x0, recording the change.
+            Escreve em registrador, ignora x0, registra a mudança."""
             if dest == 0:
                 return
             old = self.regs[dest]
@@ -513,10 +549,10 @@ class CPU:
                 taken = {
                     0: r1 == r2,           # beq
                     1: r1 != r2,           # bne
-                    4: s1 < s2,            # blt  (com sinal)
-                    5: s1 >= s2,           # bge  (com sinal)
-                    6: r1 < r2,            # bltu (sem sinal)
-                    7: r1 >= r2,           # bgeu (sem sinal)
+                    4: s1 < s2,            # blt  (signed / com sinal)
+                    5: s1 >= s2,           # bge  (signed / com sinal)
+                    6: r1 < r2,            # bltu (unsigned / sem sinal)
+                    7: r1 >= r2,           # bgeu (unsigned / sem sinal)
                 }.get(f3, False)
                 result['branch_taken'] = taken
                 if taken:
@@ -590,7 +626,8 @@ class CPU:
             self._halted = True
             return result
 
-        # ── Detecção de halt: JAL para si mesmo (loop infinito no mesmo endereço) ──
+        # Halt detection: JAL to itself (infinite loop at the same address)
+        # Detecção de halt: JAL para si mesmo (loop infinito no mesmo endereço)
         if new_pc == pc_cur:
             self._halted = True
             result['halted'] = True
@@ -601,13 +638,15 @@ class CPU:
 
     def run_until_halt(self, max_cycles: int = None) -> int:
         """
+        Execute until halt or cycle limit.
         Executa até halt ou limite de ciclos.
 
         Args:
-            max_cycles: Limite de ciclos (default: HALT_LIMIT).
+            max_cycles: Cycle limit (default: HALT_LIMIT).
+                        Limite de ciclos (default: HALT_LIMIT).
 
-        Returns:
-            Número de instruções executadas.
+        Returns / Retorna:
+            Number of instructions executed. / Número de instruções executadas.
         """
         limit = max_cycles if max_cycles is not None else self.HALT_LIMIT
         count = 0
@@ -618,13 +657,17 @@ class CPU:
 
 
 # =============================================================================
+# Simulator class — interactive REPL
 # Classe Simulator — REPL interativo
 # =============================================================================
 
 class Simulator:
     """
+    Interactive interface for the RISC-V simulator.
     Interface interativa para o simulador RISC-V.
 
+    Manages the REPL (Read-Eval-Print Loop), breakpoints,
+    trace mode and coloured output formatting.
     Gerencia o REPL (Read-Eval-Print Loop), breakpoints,
     modo trace e formatação de saída colorida.
     """
@@ -634,34 +677,35 @@ class Simulator:
         self.breakpoints: set = set()
         self.trace: bool = False
         self.use_color: bool = color
-        self.watches: set = set()          # índices de registradores monitorados
-        self._history: list = []           # buffer de (pc, disasm) executados
-        self._history_max: int = 200       # tamanho máximo do histórico
+        self.watches: set = set()          # monitored register indices / índices de registradores monitorados
+        self._history: list = []           # buffer of (pc, disasm) executed / buffer de (pc, disasm) executados
+        self._history_max: int = 200       # maximum history size / tamanho máximo do histórico
 
     def c(self, text, *keys) -> str:
-        """Aplica cores condicionalmente."""
+        """Apply colours conditionally. / Aplica cores condicionalmente."""
         return _c(text, *keys, enabled=self.use_color)
 
-    # ── Formatação de saída ───────────────────────────────────────────────────
+    # ── Output formatting / Formatação de saída ───────────────────────────────
 
     def _fmt_step(self, result: dict):
-        """Imprime linha de trace de uma instrução executada."""
+        """Print trace line for one executed instruction.
+        Imprime linha de trace de uma instrução executada."""
         pc    = result['pc']
         instr = result['instr']
         dis   = result['disasm']
 
-        # Acumula histórico
+        # Accumulate history / Acumula histórico
         self._history.append((pc, dis))
         if len(self._history) > self._history_max:
             self._history.pop(0)
 
-        # Linha principal: PC, desmontagem, hex
+        # Main line: PC, disassembly, hex / Linha principal: PC, desmontagem, hex
         pc_str    = self.c(f"[0x{pc:08x}]", 'cyan')
         dis_str   = self.c(dis, 'bold')
         hex_str   = self.c(f"(0x{instr:08x})", 'dim')
         print(f"  {pc_str} {dis_str}  {hex_str}")
 
-        # Escritas em registradores
+        # Register writes / Escritas em registradores
         for rd, old, new in result.get('reg_writes', []):
             abi = REGS_ABI[rd]
             watch_mark = self.c(" ★ WATCH", 'yellow', 'bold') if rd in self.watches else ""
@@ -672,7 +716,7 @@ class Simulator:
             )
             print(line)
 
-        # Escritas em memória de dados
+        # Data memory writes / Escritas em memória de dados
         for addr, nbytes, val in result.get('mem_writes', []):
             line = (
                 f"    {self.c('mem', 'yellow')}[0x{addr:08x}] ← "
@@ -680,29 +724,30 @@ class Simulator:
             )
             print(line)
 
-        # Status de branch
+        # Branch status / Status de branch
         if 'branch_taken' in result:
             taken = result['branch_taken']
             s = self.c("✓ tomado", 'green') if taken else self.c("✗ não tomado", 'dim')
             print(f"    branch: {s}")
 
-        # Erro ou halt
+        # Error or halt / Erro ou halt
         if result.get('error'):
             print(self.c(f"    ERRO: {result['error']}", 'red', 'bold'))
         elif result.get('halted'):
             print(self.c("    *** HALT ***", 'red', 'bold'))
 
     def _fmt_reg_line(self, n: int) -> str:
-        """Retorna linha formatada de um registrador."""
+        """Return formatted line for one register.
+        Retorna linha formatada de um registrador."""
         abi = REGS_ABI[n]
         val = self.cpu.regs[n]
         s   = to_s32(val)
         return f"  x{n:<2d} ({abi:<4s}) = 0x{val:08x}  ({s:>12d})"
 
-    # ── Handlers de comandos ──────────────────────────────────────────────────
+    # ── Command handlers / Handlers de comandos ───────────────────────────────
 
     def cmd_step(self, args):
-        """step [n] — executa n instruções."""
+        """step [n] — execute n instructions. / step [n] — executa n instruções."""
         try:
             n = int(args[0]) if args else 1
         except ValueError:
@@ -718,7 +763,8 @@ class Simulator:
                 break
 
     def cmd_run(self, args):
-        """run — executa até halt ou breakpoint."""
+        """run — execute until halt or breakpoint.
+        run — executa até halt ou breakpoint."""
         count = 0
         last_result = None
         while not self.cpu._halted:
@@ -746,7 +792,7 @@ class Simulator:
         print(self.c(f"  ({count} {n_word})", 'dim'))
 
     def cmd_reg(self, args):
-        """reg — mostra todos os registradores."""
+        """reg — show all registers. / reg — mostra todos os registradores."""
         print("Registradores:")
         for i in range(32):
             print(self._fmt_reg_line(i))
@@ -754,7 +800,8 @@ class Simulator:
         print(f"  Ciclos    = {self.cpu.cycle}")
 
     def cmd_mem(self, args):
-        """mem <addr> [n] — mostra n words de dados."""
+        """mem <addr> [n] — show n data words.
+        mem <addr> [n] — mostra n words de dados."""
         if not args:
             print("Uso: mem <addr> [n]")
             return
@@ -771,7 +818,8 @@ class Simulator:
             print(f"  [0x{a:08x}]  0x{w:08x}  ({s:>12d})")
 
     def cmd_imem(self, args):
-        """imem [addr] [n] — mostra n words de instruções com desmontagem."""
+        """imem [addr] [n] — show n instruction words with disassembly.
+        imem [addr] [n] — mostra n words de instruções com desmontagem."""
         addr = int(args[0], 0) if args else self.cpu.pc
         n    = int(args[1]) if len(args) > 1 else 8
         mem  = self.cpu.imem if self.cpu.harvard else self.cpu.mem
@@ -783,7 +831,8 @@ class Simulator:
             print(f"  [0x{a:08x}]  0x{w:08x}  {dis}{marker}")
 
     def cmd_bp(self, args):
-        """bp <addr> — ativa/desativa breakpoint."""
+        """bp <addr> — toggle breakpoint at addr.
+        bp <addr> — ativa/desativa breakpoint."""
         if not args:
             print("Uso: bp <addr>")
             return
@@ -800,7 +849,7 @@ class Simulator:
             print(self.c(f"  Breakpoint definido em 0x{addr:08x}", 'yellow'))
 
     def cmd_bps(self, args):
-        """bps — lista breakpoints ativos."""
+        """bps — list active breakpoints. / bps — lista breakpoints ativos."""
         if not self.breakpoints:
             print("  Nenhum breakpoint definido.")
         else:
@@ -809,13 +858,15 @@ class Simulator:
                 print(f"  0x{a:08x}")
 
     def cmd_reset(self, args):
-        """reset — reinicia CPU mantendo o programa."""
+        """reset — restart CPU keeping the program.
+        reset — reinicia CPU mantendo o programa."""
         self.cpu.reset()
         self._history.clear()
         print(self.c("  CPU reiniciada.", 'green'))
 
     def cmd_load(self, args):
-        """load <arquivo.hex> — carrega novo programa."""
+        """load <arquivo.hex> — load new program.
+        load <arquivo.hex> — carrega novo programa."""
         if not args:
             print("Uso: load <arquivo.hex>")
             return
@@ -831,7 +882,8 @@ class Simulator:
             print(self.c(f"  Erro ao carregar: {e}", 'red'))
 
     def cmd_trace(self, args):
-        """trace [on|off] — ativa/desativa trace durante 'run'."""
+        """trace [on|off] — enable/disable trace during 'run'.
+        trace [on|off] — ativa/desativa trace durante 'run'."""
         if args:
             self.trace = args[0].lower() in ('on', '1', 'sim', 'yes', 'true')
         else:
@@ -839,10 +891,11 @@ class Simulator:
         estado = "ativado" if self.trace else "desativado"
         print(f"  Trace: {estado}")
 
-    # ── Comandos novos ────────────────────────────────────────────────────────
+    # ── New commands / Comandos novos ─────────────────────────────────────────
 
     def _parse_reg(self, s: str):
-        """Converte 'x5', 'a0', 'ra', etc. para índice 0-31. Retorna None se inválido."""
+        """Convert 'x5', 'a0', 'ra', etc. to index 0-31. Returns None if invalid.
+        Converte 'x5', 'a0', 'ra', etc. para índice 0-31. Retorna None se inválido."""
         s = s.lower().strip()
         if s.startswith('x'):
             try:
@@ -857,7 +910,8 @@ class Simulator:
         return None
 
     def cmd_watch(self, args):
-        """watch [<reg>] — monitora mudanças em um registrador durante step/run."""
+        """watch [<reg>] — monitor changes in a register during step/run.
+        watch [<reg>] — monitora mudanças em um registrador durante step/run."""
         if not args:
             if not self.watches:
                 print("  Nenhum watch ativo.")
@@ -879,7 +933,8 @@ class Simulator:
             print(self.c(f"  Watch ativado: x{reg_num} ({REGS_ABI[reg_num]})", 'yellow'))
 
     def cmd_set(self, args):
-        """set <reg> <val> — define valor de um registrador diretamente."""
+        """set <reg> <val> — set a register value directly.
+        set <reg> <val> — define valor de um registrador diretamente."""
         if len(args) < 2:
             print("Uso: set <reg> <val>   (ex: set a0 42, set x5 0xFF)")
             return
@@ -904,7 +959,8 @@ class Simulator:
         )
 
     def cmd_history(self, args):
-        """history [n] — mostra as últimas n instruções executadas."""
+        """history [n] — show last n executed instructions.
+        history [n] — mostra as últimas n instruções executadas."""
         try:
             n = int(args[0]) if args else 20
         except ValueError:
@@ -919,7 +975,7 @@ class Simulator:
             print(f"  {self.c(f'[0x{pc:08x}]', 'cyan')} {dis}{marker}")
 
     def cmd_help(self, args):
-        """help — exibe ajuda."""
+        """help — display help. / help — exibe ajuda."""
         print("""
 Comandos do simulador RISC-V RV32I:
 ─────────────────────────────────────────────────────────────────────
@@ -950,11 +1006,11 @@ Exemplos:
   trace on; run       → trace completo
 ─────────────────────────────────────────────────────────────────────""")
 
-    # ── REPL principal ────────────────────────────────────────────────────────
+    # ── Main REPL loop / REPL principal ──────────────────────────────────────
 
     def run_repl(self):
-        """Inicia o loop interativo de comandos."""
-        # Histórico de comandos com readline
+        """Start the interactive command loop. / Inicia o loop interativo de comandos."""
+        # Command history with readline / Histórico de comandos com readline
         histfile = os.path.expanduser("~/.riscv_sim_history")
         if _READLINE:
             try:
@@ -963,7 +1019,7 @@ Exemplos:
                 pass
             readline.set_history_length(500)
 
-        # Tabela de comandos
+        # Command dispatch table / Tabela de comandos
         commands = {
             'step':    self.cmd_step,    's':    self.cmd_step,
             'run':     self.cmd_run,     'r':    self.cmd_run,
@@ -1004,6 +1060,7 @@ Exemplos:
                 if not line:
                     continue
 
+                # Allow multiple commands separated by ";"
                 # Permite múltiplos comandos separados por ";"
                 for sub in line.split(';'):
                     parts = sub.strip().split()
@@ -1037,11 +1094,13 @@ Exemplos:
 
 
 # =============================================================================
+# Batch mode: --run (execute program and print final state)
 # Modo batch: --run (executa programa e imprime estado final)
 # =============================================================================
 
 def run_batch(cpu: CPU, use_color: bool = True):
-    """Executa o programa até halt e imprime registradores finais."""
+    """Execute until halt and print final register state.
+    Executa o programa até halt e imprime registradores finais."""
     count = cpu.run_until_halt()
     c = lambda t, *k: _c(t, *k, enabled=use_color)
 
@@ -1049,9 +1108,10 @@ def run_batch(cpu: CPU, use_color: bool = True):
     print()
     print("Registradores finais:")
 
+    # Show only non-zero registers (cleaner output)
     # Mostra apenas registradores com valor != 0 (mais limpo)
     any_nonzero = False
-    for i in range(1, 32):  # x0 é sempre 0, omitir
+    for i in range(1, 32):  # x0 is always 0, omit / x0 é sempre 0, omitir
         v = cpu.regs[i]
         if v != 0:
             abi = REGS_ABI[i]
@@ -1109,7 +1169,7 @@ Exemplos:
 
     args = parser.parse_args()
 
-    # Cria CPU com tamanhos configuráveis
+    # Create CPU with configurable sizes / Cria CPU com tamanhos configuráveis
     harvard = not args.vn
     cpu = CPU(harvard=harvard)
     if harvard:
@@ -1118,7 +1178,7 @@ Exemplos:
     else:
         cpu.mem = Memory(args.mem_size)
 
-    # Carrega programa, se fornecido
+    # Load program if provided / Carrega programa, se fornecido
     if args.hex_file:
         if not os.path.isfile(args.hex_file):
             print(f"Erro: arquivo não encontrado: {args.hex_file}", file=sys.stderr)
