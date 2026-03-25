@@ -1,168 +1,264 @@
 # Processador RISC-V RV32I — Harvard e Von Neumann
 
-![CI](https://github.com/jbrittoAD/Neander_RISCV/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/jbrittoAD/Neander_RISCV/actions/workflows/ci.yml/badge.svg)](https://github.com/jbrittoAD/Neander_RISCV/actions/workflows/ci.yml)
+![Linguagem](https://img.shields.io/badge/SystemVerilog-HDL-blue)
+![Simulador](https://img.shields.io/badge/Simulador-Python%203-yellow)
+![Testes](https://img.shields.io/badge/Testes-202%20verificações-brightgreen)
+![Licença](https://img.shields.io/badge/Licença-MIT-lightgrey)
 
-Implementação educacional completa do conjunto de instruções RISC-V base de 32 bits
-(RV32I) em **SystemVerilog**, simulada e validada com **Verilator**.
+Implementação educacional completa do conjunto de instruções RISC-V de 32 bits (**RV32I**) em **SystemVerilog**, simulada e validada com **Verilator**. O projeto oferece duas arquiteturas de memória, um simulador interativo em Python, exercícios progressivos com gabarito verificado automaticamente e documentação em PDF.
 
-Inspirado na abordagem pedagógica do processador **Neander** (Weber, UFRGS), mas
-usando a ISA RISC-V — padrão aberto, moderno, usado em chips reais (SiFive, RISC-V
-International, Google, etc.).
+Inspirado na abordagem pedagógica do processador **Neander** (Weber, UFRGS), mas usando a ISA RISC-V — padrão aberto, moderno, adotado em chips reais (SiFive, Google, Western Digital, etc.).
 
 ---
 
-## Duas versões
+## Arquiteturas implementadas
 
-| Versão | Diretório | Memória |
+| Versão | Diretório | Modelo de memória |
 |---|---|---|
-| **Harvard** | `riscv_harvard/` | Instruções e dados em memórias **separadas** (ROM + RAM) |
-| **Von Neumann** | `riscv_von_neumann/` | Instruções e dados na **mesma memória** unificada |
+| **Harvard** | [`riscv_harvard/`](riscv_harvard/) | Instrução e dados em memórias **separadas** (ROM + RAM) |
+| **Von Neumann** | [`riscv_von_neumann/`](riscv_von_neumann/) | Instrução e dados na **mesma memória** unificada |
 
-Ambas implementam o mesmo conjunto de instruções RV32I completo e passam nos
-mesmos testes. A diferença está na organização da memória.
+Ambas implementam as **37 instruções RV32I** completas e passam nos mesmos testes de integração. A diferença está exclusivamente na organização da memória — ideal para comparar os dois modelos em sala de aula.
 
 ---
 
 ## Início rápido
 
 ```bash
-# Testa a versão Harvard
-cd riscv_harvard
-make all
+# Clone o repositório
+git clone https://github.com/jbrittoAD/Neander_RISCV.git
+cd Neander_RISCV
 
-# Testa a versão Von Neumann
-cd ../riscv_von_neumann
+# macOS / Linux — instala dependências automaticamente
+./install.sh
+
+# Ou instale manualmente no macOS:
+brew install verilator riscv-gnu-toolchain python
+
+# Roda todos os testes (hardware + simulador + exercícios)
 make all
 ```
 
+### Com Docker (sem instalar nada localmente)
+
+```bash
+docker build -t neander-riscv .
+docker run --rm -it -v $(pwd):/project neander-riscv bash
+
+# Dentro do container:
+make all
+```
+
+Ideal para **Windows** (via Docker Desktop) e ambientes sem acesso root.
+
 ---
 
-## Instruções suportadas (ambas as versões)
+## Instruções RV32I suportadas
 
-**37 instruções RV32I base:**
+**37 instruções base**, todas implementadas e testadas:
 
 | Tipo | Instruções |
 |---|---|
-| R-type | `add sub and or xor sll srl sra slt sltu` |
-| I-type (arith) | `addi andi ori xori slti sltiu slli srli srai` |
-| I-type (load) | `lw lh lb lhu lbu` |
-| S-type (store) | `sw sh sb` |
-| B-type (branch) | `beq bne blt bge bltu bgeu` |
-| U-type | `lui auipc` |
-| J-type | `jal jalr` |
+| R-type | `add` `sub` `and` `or` `xor` `sll` `srl` `sra` `slt` `sltu` |
+| I-type aritmético | `addi` `andi` `ori` `xori` `slti` `sltiu` `slli` `srli` `srai` |
+| I-type carga | `lw` `lh` `lb` `lhu` `lbu` |
+| S-type armazenamento | `sw` `sh` `sb` |
+| B-type desvio | `beq` `bne` `blt` `bge` `bltu` `bgeu` |
+| U-type | `lui` `auipc` |
+| J-type salto | `jal` `jalr` |
 
 ---
 
 ## Resultados dos testes
 
-| Teste | Componente testado | Verificações |
+### Hardware (Verilator)
+
+| Suite | Componente | Verificações |
 |---|---|---|
-| ALU (unitário) | ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU | 26 |
-| Banco de Registradores | Escrita, leitura, x0=0, dual-port | 8 |
-| Aritmético | Instruções R-type e I-type | 15 |
+| ALU unitária | ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU | 26 |
+| Banco de registradores | Escrita, leitura, x0=0, dual-port | 8 |
+| Aritmético integrado | R-type e I-type no processador completo | 15 |
 | Load/Store | LW, SW, LB, SB, LBU, LH, SH, LHU | 8 |
 | Branches | BEQ, BNE, BLT, BGE, BLTU | 7 |
 | Jumps | JAL, JALR | 5 |
-| **Total** | | **69** |
+| **Total hardware** | | **69** |
 
-Todos os 69 testes passam em ambas as versões.
+Todos os 69 testes passam nas duas versões (Harvard e Von Neumann).
+
+### Simulador Python
+
+| Suite | Verificações |
+|---|---|
+| Instruções aritméticas e lógicas | 28 |
+| Load/Store (byte, half, word) | 18 |
+| Branches e jumps | 10 |
+| Comandos interativos (watch, set, history) | 33 |
+| **Total simulador** | **89** |
+
+### Gabaritos de exercícios
+
+| Listas | Exercícios compilados e executados | Verificações |
+|---|---|---|
+| Listas 1–5 + Capstone | 24 programas assembly | 24 |
+
+**Total geral: 202 verificações automatizadas.**
 
 ---
 
-## Pacote didático completo
+## Conteúdo do repositório
 
-Este repositório inclui tudo para reproduzir a experiência do Neander com RISC-V:
+```
+Neander_RISCV/
+├── riscv_harvard/          # Processador Harvard (ROM + RAM separadas)
+│   ├── src/                # SystemVerilog: ALU, regfile, control, top
+│   ├── tb/                 # Testbenches C++ para Verilator
+│   └── programs/           # Programas de teste em assembly
+├── riscv_von_neumann/      # Processador Von Neumann (memória unificada)
+│   └── ...                 # Mesma estrutura do Harvard
+├── simulator/              # Simulador interativo em Python
+│   └── tests/              # 89 testes unitários
+├── tutoriais/              # 7 tutoriais + guia de erros comuns
+├── exercicios/             # 5 listas + capstone (24 gabaritos)
+│   ├── lista_01_basico/
+│   ├── lista_02_intermediario/
+│   ├── lista_03_avancado/
+│   ├── lista_04_expert/
+│   ├── lista_05_bits/
+│   └── capstone/
+├── exemplos/               # 12 programas clássicos + guia C→RISC-V
+├── referencia/             # Cartão de referência das 37 instruções
+├── Dockerfile              # Ambiente completo (Ubuntu 24.04 + Verilator 5.x)
+└── install.sh              # Script de instalação (macOS, Ubuntu, Arch)
+```
 
-| Recurso | Diretório | Descrição |
-|---|---|---|
-| **Simulador interativo** | [`simulator/`](simulator/) | Step-by-step, breakpoints, watch, history — como o simulador Neander |
-| **Tutoriais** | [`tutoriais/`](tutoriais/) | 7 tutoriais do zero ao avançado + guia de erros comuns |
-| **Exercícios** | [`exercicios/`](exercicios/) | 20 exercícios em 4 listas com gabarito verificado automaticamente |
-| **Exemplos** | [`exemplos/`](exemplos/) | 12 programas clássicos + guia C→RISC-V |
-| **Referência** | [`referencia/`](referencia/) | Cartão de todas as 37 instruções |
+---
 
-### Simulador interativo
+## Simulador interativo
+
+O simulador emula o processador passo a passo, com breakpoints e inspeção de estado — similar ao simulador Neander original.
 
 ```bash
-# Compilar um programa e rodar no simulador
+# Monta um programa e carrega no simulador
 cd riscv_harvard && make programs && cd ..
-
 python3 simulator/riscv_sim.py riscv_harvard/programs/test_arith.hex
 ```
 
-```
-riscv> step 5        # executa 5 instruções
-riscv> reg           # mostra registradores
-riscv> mem 0x0000 8  # mostra memória de dados
-riscv> watch a0      # monitora mudanças em a0 (★ no trace)
-riscv> set a0 99     # força valor de registrador
-riscv> history 10    # últimas 10 instruções executadas
-riscv> run           # executa até o halt
-riscv> reset         # reinicia
-```
+Comandos disponíveis no prompt `riscv>`:
 
-Testes do simulador (89 verificações, sem dependências externas):
+| Comando | Descrição |
+|---|---|
+| `step [n]` | Executa n instruções (padrão: 1) |
+| `run` | Executa até o halt ou breakpoint |
+| `reg` | Exibe todos os registradores |
+| `mem <addr> [n]` | Exibe n words da memória de dados |
+| `imem <addr>` | Exibe instruções com o PC marcado |
+| `bp <addr>` | Define breakpoint |
+| `watch <reg>` | Monitora alterações em um registrador |
+| `set <reg> <val>` | Força valor em um registrador |
+| `history [n]` | Exibe últimas n instruções executadas |
+| `reset` | Reinicia a simulação |
+
 ```bash
+# Testes do simulador (89 verificações, sem dependências externas):
 python3 simulator/tests/test_core.py
-```
 
-Verificador automático de gabaritos (20 exercícios):
-```bash
+# Verificador de gabaritos (compila e executa os 24 exercícios):
 python3 exercicios/verifica_gabaritos.py
 ```
 
-### Por onde começar?
+---
 
-1. Leia [`tutoriais/README.md`](tutoriais/README.md)
-2. Siga o Tutorial 01 (Olá Mundo)
-3. Resolva os exercícios da Lista 1
-4. Explore os programas de exemplo
-5. Estude a implementação em SystemVerilog
+## Material didático
+
+### Tutoriais ([`tutoriais/`](tutoriais/))
+
+| # | Arquivo | Tema | Nível |
+|---|---|---|---|
+| 01 | [`01_ola_mundo.md`](tutoriais/01_ola_mundo.md) | Primeiro programa, halt, simulador | ⭐ |
+| 02 | [`02_aritmetica.md`](tutoriais/02_aritmetica.md) | Operações aritméticas e lógicas | ⭐ |
+| 03 | [`03_desvios.md`](tutoriais/03_desvios.md) | Desvios condicionais e incondicionais | ⭐⭐ |
+| 04 | [`04_lacos.md`](tutoriais/04_lacos.md) | Laços com branch | ⭐⭐ |
+| 05 | [`05_memoria.md`](tutoriais/05_memoria.md) | Load/Store, arrays, ponteiros | ⭐⭐ |
+| 06 | [`06_funcoes.md`](tutoriais/06_funcoes.md) | Funções, pilha, convenção de chamada | ⭐⭐⭐ |
+| 07 | [`07_depuracao.md`](tutoriais/07_depuracao.md) | Depuração com o simulador | ⭐⭐⭐ |
+| — | [`erros_comuns.md`](tutoriais/erros_comuns.md) | 10 erros clássicos com diagnóstico | — |
+
+### Exercícios ([`exercicios/`](exercicios/))
+
+| Lista | Tema | Exercícios |
+|---|---|---|
+| [Lista 1 — Básico ⭐](exercicios/lista_01_basico/enunciado.md) | Aritmética, lógica, shifts, LUI, XOR swap | 5 |
+| [Lista 2 — Intermediário ⭐⭐](exercicios/lista_02_intermediario/enunciado.md) | Abs, máximo, soma de N, popcount, busca linear | 5 |
+| [Lista 3 — Avançado ⭐⭐⭐](exercicios/lista_03_avancado/enunciado.md) | Ponteiros, funções, fatorial, Fibonacci | 5 |
+| [Lista 4 — Expert ⭐⭐⭐⭐](exercicios/lista_04_expert/enunciado.md) | Recursão, busca binária, inversão de string, MMC | 5 |
+| [Lista 5 — Bits ⭐⭐](exercicios/lista_05_bits/enunciado.md) | Extração de campo, set/clear/toggle, pack/unpack | 3 |
+| [Capstone ⭐⭐⭐⭐⭐](exercicios/capstone/enunciado.md) | Insertion Sort + Busca Binária + Soma de Array | 1 |
+
+Todos os 24 gabaritos são compilados e verificados automaticamente com `verifica_gabaritos.py`.
+
+### Exemplos ([`exemplos/`](exemplos/))
+
+12 programas clássicos prontos para rodar no simulador:
+`factorial` · `fibonacci` · `bubblesort` · `selection_sort` · `binary_search` · `gcd` · `power` · `strlen` · `sum_array` · `max_array` · `abs_value` · `counter`
+
+Guia de tradução C → RISC-V assembly: [`exemplos/c_para_riscv.md`](exemplos/c_para_riscv.md)
+
+### Referência ([`referencia/`](referencia/))
+
+Cartão de referência completo com todas as 37 instruções, formatos de codificação, extensões de sinal e exemplos de uso: [`referencia/instrucoes_riscv32.md`](referencia/instrucoes_riscv32.md)
 
 ---
 
-## Documentação do hardware
+## CI/CD
 
-- [`riscv_harvard/README.md`](riscv_harvard/README.md) — Documentação completa da versão Harvard
-- [`riscv_von_neumann/README.md`](riscv_von_neumann/README.md) — Documentação completa da versão Von Neumann
+O repositório usa **GitHub Actions** com pipeline de 3 estágios em sequência:
 
----
-
-## Instalação
-
-```bash
-# macOS e Linux — script automático:
-./install.sh
-
-# Ou manualmente (macOS):
-brew install verilator riscv-gnu-toolchain python
+```
+Simulador Python (89 testes)
+        ↓
+Gabaritos (24 exercícios compilados e verificados)
+        ↓
+Hardware Verilator (Harvard + Von Neumann — 69 verificações)
 ```
 
-O script `install.sh` detecta o sistema operacional (macOS, Ubuntu/Debian, Arch), instala as dependências e executa os testes do simulador como verificação final.
-
-Versões testadas: Verilator 5.042, GNU Binutils 2.45, Python 3.x
+Todo push aciona o pipeline automaticamente. O badge no topo desta página reflete o estado atual da branch `main`.
 
 ---
 
-## Usando com Docker (sem instalar nada localmente)
+## Dependências e versões testadas
 
-```bash
-# Constrói a imagem (uma vez)
-docker build -t neander-riscv .
+| Ferramenta | Versão testada | Instalação |
+|---|---|---|
+| Verilator | 5.042 | `brew install verilator` / `apt install verilator` |
+| GNU Binutils RISC-V | 2.45 | `brew install riscv-gnu-toolchain` |
+| Python | 3.x | `brew install python` |
+| GCC (para Docker) | 13.x | incluído na imagem |
 
-# Abre um shell interativo com todas as ferramentas
-docker run --rm -it -v $(pwd):/project neander-riscv bash
+---
 
-# Ou com docker-compose:
-docker-compose run --rm riscv
+## Documentação em PDF
 
-# Dentro do container:
-python3 simulator/tests/test_core.py          # testes do simulador
-python3 exercicios/verifica_gabaritos.py       # todos os gabaritos
-make -C exemplos all                           # compila exemplos
-```
+Toda a documentação está disponível em PDF gerado automaticamente a partir dos arquivos Markdown:
 
-O Docker é ideal para:
-- Windows (via Docker Desktop)
-- Linux sem acesso root para instalar pacotes
-- Ambiente reproduzível para correção automática
+- [`README.pdf`](README.pdf) — Este documento
+- [`tutoriais/`](tutoriais/) — Um PDF por tutorial
+- [`exercicios/`](exercicios/) — Um PDF por lista de exercícios
+- [`referencia/instrucoes_riscv32.pdf`](referencia/instrucoes_riscv32.pdf) — Cartão de referência
+
+---
+
+## Por onde começar?
+
+1. Instale as dependências com `./install.sh`
+2. Leia [`tutoriais/README.md`](tutoriais/README.md) para ter uma visão geral
+3. Siga o **Tutorial 01** (Olá Mundo) do início ao fim
+4. Resolva os exercícios da **Lista 1**
+5. Use o simulador interativo para depurar seus programas
+6. Estude a implementação em SystemVerilog em `riscv_harvard/src/`
+
+---
+
+## Licença
+
+MIT — veja [`LICENSE`](LICENSE).
