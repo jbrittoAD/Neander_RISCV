@@ -75,7 +75,7 @@ module unified_mem #(
 
         $display("[MEM] Loading program.hex (Von Neumann) ... / Carregando program.hex (Von Neumann) ...");
         $readmemh("program.hex", mem);
-        $display("[MEM] Loaded. mem[0]=0x%08X / Carregado. mem[0]=0x%08X", mem[0]);
+        $display("[MEM] Loaded / Carregado. mem[0]=0x%08X", mem[0]);
     end
 
     // -----------------------------------------------------------------------
